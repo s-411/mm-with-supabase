@@ -149,7 +149,38 @@ export function useNirvanaSessionTypes() {
       setLoading(true);
       const settingsService = await getSettingsService(getToken, userId);
       const data = await settingsService.getNirvanaSessionTypes();
-      setSessionTypes(data);
+
+      // If no session types exist, seed the defaults
+      if (data.length === 0) {
+        const defaultSessionTypes = [
+          'Mobility: Shoulder, elbow, and wrist',
+          'Mobility: Spine',
+          'Mobility: hip, knee, and ankle',
+          'Beginner handstands',
+          'Handstands',
+          'Press handstand',
+          'Handstand push-up',
+          'Abs and glutes',
+          'Power yoga',
+          'Pilates',
+          'Back bends',
+          'Single leg squat',
+          'Side splits',
+          'Front splits',
+          'Yin yoga'
+        ];
+
+        // Add all default session types
+        const seededTypes = [];
+        for (let i = 0; i < defaultSessionTypes.length; i++) {
+          const newType = await settingsService.addNirvanaSessionType(defaultSessionTypes[i]);
+          seededTypes.push(newType);
+        }
+        setSessionTypes(seededTypes);
+      } else {
+        setSessionTypes(data);
+      }
+
       setError(null);
     } catch (err) {
       console.error('Error loading nirvana session types:', err);
