@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { createClerkSupabaseClient } from '@/lib/supabase/client'
 import { DailyService } from '@/lib/services/daily.service'
+import { ProfileService } from '@/lib/services/profile.service'
 import type { Database } from '@/lib/supabase/database.types'
 
 type InjectionEntry = Database['public']['Tables']['injection_entries']['Row']
@@ -35,7 +36,12 @@ export function useInjections(startDate: string, endDate: string): UseInjections
     if (!token) throw new Error('No auth token')
 
     const supabase = createClerkSupabaseClient(token)
-    return new DailyService(supabase, userId)
+    const profileService = new ProfileService(supabase)
+    const profile = await profileService.get(userId)
+
+    if (!profile) throw new Error('Profile not found')
+
+    return new DailyService(supabase, profile.id)
   }, [getToken, userId])
 
   const loadInjections = useCallback(async () => {
