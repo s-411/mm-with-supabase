@@ -115,7 +115,8 @@ export default function NirvanaPage() {
   const addSession = async (sessionType: string) => {
     try {
       await addSessionSupabase(sessionType);
-      // No need to reload weekly - addSessionSupabase already updates local state
+      // Reload weekly data to update schedule/summary (but don't await to keep UI responsive)
+      reloadWeekly();
     } catch (error) {
       console.error('Error adding session:', error);
       alert('Failed to add session. Please try again.');
@@ -125,7 +126,8 @@ export default function NirvanaPage() {
   const removeSession = async (sessionId: string) => {
     try {
       await removeSessionSupabase(sessionId);
-      // No need to reload weekly - removeSessionSupabase already updates local state
+      // Reload weekly data to update schedule/summary (but don't await to keep UI responsive)
+      reloadWeekly();
     } catch (error) {
       console.error('Error removing session:', error);
       alert('Failed to remove session. Please try again.');
@@ -549,7 +551,7 @@ export default function NirvanaPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {milestones
-              .sort((a, b) => a.order - b.order)
+              .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
               .map((milestone) => {
                 const Icon = getCategoryIcon(milestone.category);
                 return (

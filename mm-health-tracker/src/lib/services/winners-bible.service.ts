@@ -15,7 +15,7 @@ export interface WinnersBibleImageData {
 }
 
 export class WinnersBibleService {
-  private readonly STORAGE_BUCKET = 'winners-bible';
+  private readonly STORAGE_BUCKET = 'winners-bible-images';
 
   constructor(
     private supabase: SupabaseClient<Database>,
