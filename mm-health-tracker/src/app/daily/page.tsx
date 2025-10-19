@@ -5,6 +5,7 @@ import { profileStorage, dailyEntryStorage, generateId, weeklyEntryStorage, getW
 import { DailyEntry, UserProfile, MITEntry, WeeklyEntry, WeeklyObjective } from '@/types';
 import { useMacroTargets } from '@/lib/hooks/useSettings';
 import { useDaily } from '@/lib/hooks/useDaily';
+import { useInjections } from '@/lib/hooks/useInjections';
 import { formatDateLong } from '@/lib/dateUtils';
 import {
   CalendarDaysIcon,
@@ -57,6 +58,9 @@ export default function DailyTrackerPage() {
     addMIT: addMITSupabase,
     deleteMIT: deleteMITSupabase,
   } = useDaily(tomorrowDate);
+
+  // Load injections for current date from Supabase
+  const { injections: supabaseInjections } = useInjections(currentDate, currentDate);
 
   const [showMITForm, setShowMITForm] = useState(false);
   const [mitInput, setMitInput] = useState('');
@@ -331,9 +335,6 @@ export default function DailyTrackerPage() {
     const tomorrow = new Date(currentDate);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Check if injections were logged for current date (from dailyEntry)
-    const hasInjections = (dailyEntry?.injections?.length ?? 0) > 0;
-
     // Check if nirvana sessions were logged for current date
     const nirvanaEntry = nirvanaSessionStorage.getByDate(currentDate);
     const hasNirvanaSessions = nirvanaEntry && nirvanaEntry.sessions.length > 0;
@@ -345,7 +346,7 @@ export default function DailyTrackerPage() {
       deepWork: supabaseEntry?.deep_work_completed || false,
       mits: tomorrowMITs.length > 0,
       winnersBible: (dailyEntry?.winnersBibleMorning || false) || (dailyEntry?.winnersBibleNight || false),
-      injections: hasInjections,
+      injections: supabaseInjections.length > 0,
       nirvana: hasNirvanaSessions
     };
 

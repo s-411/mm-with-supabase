@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { dailyEntryStorage, compoundStorage, injectionTargetStorage, timezoneStorage } from '@/lib/storage';
 import { InjectionEntry } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+import { useInjections } from '@/lib/hooks/useInjections';
+import { useCompounds } from '@/lib/hooks/useSettings';
 import { formatDate, formatTime, formatDateForDisplay } from '@/lib/dateUtils';
 import { 
   BeakerIcon, 
@@ -20,11 +21,8 @@ type TimeRange = '3' | '7' | '30' | '60' | '90' | 'all';
 type CompoundFilter = 'all' | 'Ipamorellin' | 'Retatrutide' | 'Testosterone' | 'custom';
 
 export default function InjectionsPage() {
-  const [allInjections, setAllInjections] = useState<InjectionEntry[]>([]);
-  const [filteredInjections, setFilteredInjections] = useState<InjectionEntry[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>('7');
   const [compoundFilter, setCompoundFilter] = useState<CompoundFilter>('all');
-  const [compounds, setCompounds] = useState<string[]>([]);
   const [injectionInput, setInjectionInput] = useState({
     compound: '',
     dosage: '',
@@ -35,151 +33,169 @@ export default function InjectionsPage() {
   });
   const units = ['mg', 'ml', 'iu', 'mcg'];
 
-  useEffect(() => {
-    loadAllInjections();
-    loadCompounds();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Calculate date range based on selected time range
+  const dateRange = useMemo(() => {
+    const endDate = timezoneStorage.getCurrentDate();
+    let startDate = endDate;
 
-  useEffect(() => {
-    applyFilters();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allInjections, timeRange, compoundFilter]);
-
-  const loadCompounds = () => {
-    const storedCompounds = compoundStorage.get();
-    setCompounds(storedCompounds);
-    
-    // Set default compound if available
-    if (storedCompounds.length > 0 && !injectionInput.compound) {
-      setInjectionInput(prev => ({ ...prev, compound: storedCompounds[0] }));
-    }
-  };
-
-  const loadAllInjections = () => {
-    const dailyEntries = dailyEntryStorage.getAll();
-    const injections: InjectionEntry[] = [];
-
-    Object.values(dailyEntries).forEach(entry => {
-      injections.push(...entry.injections);
-    });
-
-    // Sort by timestamp, newest first
-    injections.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    setAllInjections(injections);
-  };
-
-  const applyFilters = () => {
-    let filtered = [...allInjections];
-
-    // Time range filter
     if (timeRange !== 'all') {
       const daysBack = parseInt(timeRange);
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - daysBack);
-      
-      filtered = filtered.filter(injection => 
-        new Date(injection.timestamp) >= cutoffDate
-      );
+      const date = new Date();
+      date.setDate(date.getDate() - daysBack);
+      startDate = date.toISOString().split('T')[0];
+    } else {
+      // For 'all', get data from 1 year ago
+      const date = new Date();
+      date.setFullYear(date.getFullYear() - 1);
+      startDate = date.toISOString().split('T')[0];
     }
+
+    return { startDate, endDate };
+  }, [timeRange]);
+
+  // Load compounds from Supabase
+  const { compounds } = useCompounds();
+
+  // Load injections from Supabase
+  const {
+    injections: allInjections,
+    loading,
+    addInjection: addInjectionSupabase,
+    deleteInjection: deleteInjectionSupabase,
+  } = useInjections(dateRange.startDate, dateRange.endDate);
+
+  // Set default compound when compounds load
+  useEffect(() => {
+    if (compounds.length > 0 && !injectionInput.compound) {
+      setInjectionInput(prev => ({ ...prev, compound: compounds[0] }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compounds]);
+
+  // Apply compound filter (time range is already filtered by the hook)
+  const filteredInjections = useMemo(() => {
+    let filtered = [...allInjections];
 
     // Compound filter
     if (compoundFilter !== 'all') {
       if (compoundFilter === 'custom') {
-        filtered = filtered.filter(injection => 
-          !compounds.includes(injection.compound)
+        filtered = filtered.filter(injection =>
+          !compounds.includes(injection.compound_name)
         );
       } else {
-        filtered = filtered.filter(injection => 
-          injection.compound === compoundFilter
+        filtered = filtered.filter(injection =>
+          injection.compound_name === compoundFilter
         );
       }
     }
 
-    setFilteredInjections(filtered);
-  };
+    return filtered;
+  }, [allInjections, compoundFilter, compounds]);
 
-  const addInjection = () => {
+  const addInjection = async () => {
     if (!injectionInput.dosage || parseFloat(injectionInput.dosage) <= 0) return;
 
-    const newInjection: InjectionEntry = {
-      id: uuidv4(),
-      compound: injectionInput.compound,
-      dosage: parseFloat(injectionInput.dosage),
-      unit: injectionInput.unit,
-      notes: injectionInput.notes || undefined,
-      timestamp: new Date(`${injectionInput.date}T${injectionInput.time}:00`)
-    };
+    try {
+      // Add to Supabase
+      await addInjectionSupabase(injectionInput.date, {
+        compound_name: injectionInput.compound,
+        dosage: parseFloat(injectionInput.dosage),
+        unit: injectionInput.unit,
+        time_of_day: injectionInput.time,
+        notes: injectionInput.notes || null,
+      });
 
-    // Add to the correct daily entry
-    const existingEntry = dailyEntryStorage.getByDate(injectionInput.date);
-    const updatedInjections = existingEntry 
-      ? [...existingEntry.injections, newInjection]
-      : [newInjection];
+      // Also update localStorage for backwards compatibility
+      const newInjection: InjectionEntry = {
+        id: crypto.randomUUID(),
+        compound: injectionInput.compound,
+        dosage: parseFloat(injectionInput.dosage),
+        unit: injectionInput.unit,
+        notes: injectionInput.notes || undefined,
+        timestamp: new Date(`${injectionInput.date}T${injectionInput.time}:00`)
+      };
 
-    dailyEntryStorage.createOrUpdate(injectionInput.date, { 
-      injections: updatedInjections 
-    });
+      const existingEntry = dailyEntryStorage.getByDate(injectionInput.date);
+      const updatedInjections = existingEntry
+        ? [...existingEntry.injections, newInjection]
+        : [newInjection];
 
-    // Reset form and reload
-    setInjectionInput({
-      compound: compounds.length > 0 ? compounds[0] : '',
-      dosage: '',
-      unit: 'mg',
-      notes: '',
-      date: timezoneStorage.getCurrentDate(),
-      time: '12:00'
-    });
-    loadAllInjections();
+      dailyEntryStorage.createOrUpdate(injectionInput.date, {
+        injections: updatedInjections
+      });
+
+      // Reset form
+      setInjectionInput({
+        compound: compounds.length > 0 ? compounds[0] : '',
+        dosage: '',
+        unit: 'mg',
+        notes: '',
+        date: timezoneStorage.getCurrentDate(),
+        time: '12:00'
+      });
+    } catch (error) {
+      console.error('Error adding injection:', error);
+      alert('Failed to add injection. Please try again.');
+    }
   };
 
-  const removeInjection = (injectionId: string) => {
-    // Find which date this injection belongs to and remove it
-    const injection = allInjections.find(inj => inj.id === injectionId);
-    if (!injection) return;
+  const removeInjection = async (injectionId: string) => {
+    try {
+      // Delete from Supabase
+      await deleteInjectionSupabase(injectionId);
 
-    const injectionDate = injection.timestamp.toISOString().split('T')[0];
-    const dailyEntry = dailyEntryStorage.getByDate(injectionDate);
-    
-    if (dailyEntry) {
-      const updatedInjections = dailyEntry.injections.filter(inj => inj.id !== injectionId);
-      dailyEntryStorage.createOrUpdate(injectionDate, { injections: updatedInjections });
-      loadAllInjections();
+      // Also update localStorage for backwards compatibility
+      const injection = allInjections.find(inj => inj.id === injectionId);
+      if (injection) {
+        const injectionDate = injection.date;
+        const dailyEntry = dailyEntryStorage.getByDate(injectionDate);
+
+        if (dailyEntry) {
+          const updatedInjections = dailyEntry.injections.filter(inj => inj.id !== injectionId);
+          dailyEntryStorage.createOrUpdate(injectionDate, { injections: updatedInjections });
+        }
+      }
+    } catch (error) {
+      console.error('Error removing injection:', error);
+      alert('Failed to remove injection. Please try again.');
     }
   };
 
   // Calculate frequency analysis with weekly dosage
   const getFrequencyAnalysis = () => {
-    const analysis: Record<string, { 
-      count: number; 
-      lastInjection: Date; 
+    const analysis: Record<string, {
+      count: number;
+      lastInjection: Date;
       weeklyDosage: number;
       totalDosage: number;
     }> = {};
-    
+
     // Get last 7 days for weekly calculation
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    
+
     filteredInjections.forEach(injection => {
-      if (!analysis[injection.compound]) {
-        analysis[injection.compound] = { 
-          count: 0, 
-          lastInjection: injection.timestamp,
+      const compound = injection.compound_name;
+      const timestamp = new Date(`${injection.date}T${injection.time_of_day || '00:00'}:00`);
+
+      if (!analysis[compound]) {
+        analysis[compound] = {
+          count: 0,
+          lastInjection: timestamp,
           weeklyDosage: 0,
           totalDosage: 0
         };
       }
-      analysis[injection.compound].count++;
-      analysis[injection.compound].totalDosage += injection.dosage;
-      
+      analysis[compound].count++;
+      analysis[compound].totalDosage += injection.dosage;
+
       // Add to weekly dosage if within last 7 days
-      if (new Date(injection.timestamp) >= weekAgo) {
-        analysis[injection.compound].weeklyDosage += injection.dosage;
+      if (timestamp >= weekAgo) {
+        analysis[compound].weeklyDosage += injection.dosage;
       }
-      
-      if (injection.timestamp > analysis[injection.compound].lastInjection) {
-        analysis[injection.compound].lastInjection = injection.timestamp;
+
+      if (timestamp > analysis[compound].lastInjection) {
+        analysis[compound].lastInjection = timestamp;
       }
     });
 
@@ -489,42 +505,45 @@ export default function InjectionsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-mm-gray/20">
-                {filteredInjections.map((injection) => (
-                  <tr key={injection.id} className="hover:bg-mm-dark2/30 transition-colors">
-                    <td className="p-4">
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          {formatDate(injection.timestamp)}
+                {filteredInjections.map((injection) => {
+                  const timestamp = new Date(`${injection.date}T${injection.time_of_day || '00:00'}:00`);
+                  return (
+                    <tr key={injection.id} className="hover:bg-mm-dark2/30 transition-colors">
+                      <td className="p-4">
+                        <div className="text-sm">
+                          <div className="font-medium">
+                            {formatDate(timestamp)}
+                          </div>
+                          <div className="text-mm-gray text-xs">
+                            {formatTime(timestamp)}
+                          </div>
                         </div>
-                        <div className="text-mm-gray text-xs">
-                          {formatTime(injection.timestamp)}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="font-medium">{injection.compound}</span>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-mm-blue font-medium">
-                        {injection.dosage} {injection.unit}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm text-mm-gray">
-                        {injection.notes || '-'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <button
-                        onClick={() => removeInjection(injection.id)}
-                        className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
-                        title="Delete injection"
-                      >
-                        <XMarkIcon className="w-4 h-4 text-red-500" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="p-4">
+                        <span className="font-medium">{injection.compound_name}</span>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-mm-blue font-medium">
+                          {injection.dosage} {injection.unit}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm text-mm-gray">
+                          {injection.notes || '-'}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <button
+                          onClick={() => removeInjection(injection.id)}
+                          className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                          title="Delete injection"
+                        >
+                          <XMarkIcon className="w-4 h-4 text-red-500" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
