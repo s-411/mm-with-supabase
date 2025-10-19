@@ -1477,7 +1477,10 @@ function SettingsPageContent() {
         </div>
 
         <button
-          onClick={() => signOut(() => router.push('/'))}
+          onClick={async () => {
+            await signOut();
+            router.push('/');
+          }}
           className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
         >
           <ArrowRightOnRectangleIcon className="w-5 h-5" />
