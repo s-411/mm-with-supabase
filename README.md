@@ -6,7 +6,7 @@ Comprehensive health tracking application built with Next.js, Supabase, and Cler
 
 **🌐 [measuredmanaged.app](https://measuredmanaged.app)**
 
-## Tech Stack
+## Tech Stack 
 
 - **Frontend**: Next.js 15.5.3 with React 19
 - **Database**: Supabase (PostgreSQL)
