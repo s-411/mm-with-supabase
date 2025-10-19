@@ -5,6 +5,8 @@ import { profileStorage, dailyEntryStorage, generateId, weeklyEntryStorage, getW
 import { DailyEntry, UserProfile, MITEntry, WeeklyEntry, WeeklyObjective } from '@/types';
 import { useMacroTargets } from '@/lib/hooks/useSettings';
 import { useDaily } from '@/lib/hooks/useDaily';
+import { useInjections } from '@/lib/hooks/useInjections';
+import { useWeekly } from '@/lib/hooks/useWeekly';
 import { formatDateLong } from '@/lib/dateUtils';
 import {
   CalendarDaysIcon,
@@ -58,9 +60,25 @@ export default function DailyTrackerPage() {
     deleteMIT: deleteMITSupabase,
   } = useDaily(tomorrowDate);
 
+  // Load injections for current date from Supabase
+  const { injections: supabaseInjections } = useInjections(currentDate, currentDate);
+
+  // Calculate week start date (Monday) for weekly objectives
+  const weekStartDate = useMemo(() => getWeekStartDate(currentDate), [currentDate]);
+
+  // Load weekly objectives from Supabase
+  const {
+    objectives: supabaseObjectives,
+    whyImportant: supabaseWhyImportant,
+    fridayReview: supabaseFridayReview,
+    updateObjectives: updateObjectivesSupabase,
+    toggleObjectiveCompletion: toggleObjectiveSupabase,
+    updateFridayReview: updateFridayReviewSupabase,
+  } = useWeekly(weekStartDate);
+
   const [showMITForm, setShowMITForm] = useState(false);
   const [mitInput, setMitInput] = useState('');
-  
+
   // Weekly objectives state
   const [weeklyEntry, setWeeklyEntry] = useState<WeeklyEntry | null>(null);
   const [showWeeklyForm, setShowWeeklyForm] = useState(false);
@@ -74,7 +92,6 @@ export default function DailyTrackerPage() {
   const isMonday = dayOfWeek === 1;
   const isTuesdayToThursday = dayOfWeek >= 2 && dayOfWeek <= 4;
   const isFriday = dayOfWeek === 5;
-  const weekStartDate = getWeekStartDate(currentDate);
 
   useEffect(() => {
     const existingProfile = profileStorage.get();
@@ -267,7 +284,7 @@ export default function DailyTrackerPage() {
   };
 
   // Weekly objectives functions
-  const saveWeeklyObjectives = () => {
+  const saveWeeklyObjectives = async () => {
     const objectives: WeeklyObjective[] = objectiveInputs
       .filter(input => input.trim())
       .map((objective, index) => ({
@@ -277,13 +294,22 @@ export default function DailyTrackerPage() {
         order: index
       }));
 
-    const updatedEntry = weeklyEntryStorage.createOrUpdate(weekStartDate, {
-      objectives,
-      whyImportant: whyInput.trim()
-    });
-    
-    setWeeklyEntry(updatedEntry);
-    setShowWeeklyForm(false);
+    try {
+      // Save to Supabase
+      await updateObjectivesSupabase(objectives, whyInput.trim());
+
+      // Also update localStorage for backwards compatibility
+      const updatedEntry = weeklyEntryStorage.createOrUpdate(weekStartDate, {
+        objectives,
+        whyImportant: whyInput.trim()
+      });
+
+      setWeeklyEntry(updatedEntry);
+      setShowWeeklyForm(false);
+    } catch (error) {
+      console.error('Error saving weekly objectives:', error);
+      alert('Failed to save weekly objectives. Please try again.');
+    }
   };
 
   const updateObjectiveInput = (index: number, value: string) => {
@@ -292,19 +318,38 @@ export default function DailyTrackerPage() {
     setObjectiveInputs(newInputs);
   };
 
-  const toggleWeeklyObjective = (objectiveId: string) => {
-    if (!weeklyEntry) return;
-    
-    const updatedEntry = weeklyEntryStorage.toggleObjectiveCompletion(weekStartDate, objectiveId);
-    setWeeklyEntry(updatedEntry);
+  const toggleWeeklyObjective = async (objectiveId: string) => {
+    try {
+      // Toggle in Supabase
+      await toggleObjectiveSupabase(objectiveId);
+
+      // Also update localStorage for backwards compatibility
+      if (weeklyEntry) {
+        const updatedEntry = weeklyEntryStorage.toggleObjectiveCompletion(weekStartDate, objectiveId);
+        setWeeklyEntry(updatedEntry);
+      }
+    } catch (error) {
+      console.error('Error toggling objective:', error);
+      alert('Failed to toggle objective. Please try again.');
+    }
   };
 
-  const saveFridayReview = () => {
-    if (!weeklyEntry) return;
-    
-    const updatedEntry = weeklyEntryStorage.updateFridayReview(weekStartDate, reviewInput.trim());
-    setWeeklyEntry(updatedEntry);
-    setShowReviewForm(false); // Close the form after saving
+  const saveFridayReview = async () => {
+    try {
+      // Save to Supabase
+      await updateFridayReviewSupabase(reviewInput.trim());
+
+      // Also update localStorage for backwards compatibility
+      if (weeklyEntry) {
+        const updatedEntry = weeklyEntryStorage.updateFridayReview(weekStartDate, reviewInput.trim());
+        setWeeklyEntry(updatedEntry);
+      }
+
+      setShowReviewForm(false); // Close the form after saving
+    } catch (error) {
+      console.error('Error saving Friday review:', error);
+      alert('Failed to save Friday review. Please try again.');
+    }
   };
 
   const isToday = timezoneStorage.isToday(currentDate);
@@ -331,9 +376,6 @@ export default function DailyTrackerPage() {
     const tomorrow = new Date(currentDate);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Check if injections were logged for current date (from dailyEntry)
-    const hasInjections = (dailyEntry?.injections?.length ?? 0) > 0;
-
     // Check if nirvana sessions were logged for current date
     const nirvanaEntry = nirvanaSessionStorage.getByDate(currentDate);
     const hasNirvanaSessions = nirvanaEntry && nirvanaEntry.sessions.length > 0;
@@ -345,7 +387,7 @@ export default function DailyTrackerPage() {
       deepWork: supabaseEntry?.deep_work_completed || false,
       mits: tomorrowMITs.length > 0,
       winnersBible: (dailyEntry?.winnersBibleMorning || false) || (dailyEntry?.winnersBibleNight || false),
-      injections: hasInjections,
+      injections: supabaseInjections.length > 0,
       nirvana: hasNirvanaSessions
     };
 
@@ -425,7 +467,7 @@ export default function DailyTrackerPage() {
             </div>
           </div>
 
-          {!showWeeklyForm && !weeklyEntry?.objectives.length ? (
+          {!showWeeklyForm && !supabaseObjectives.length ? (
             <button
               onClick={() => setShowWeeklyForm(true)}
               className="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-full w-full py-3 text-base mb-4 transition-colors flex items-center justify-center"
@@ -436,7 +478,7 @@ export default function DailyTrackerPage() {
           ) : !showWeeklyForm ? (
             <div className="space-y-4">
               <div className="grid gap-3">
-                {weeklyEntry?.objectives.map((objective, index) => (
+                {supabaseObjectives.map((objective, index) => (
                   <div key={objective.id} className="flex items-center gap-3 p-3 bg-mm-dark2/50 rounded-lg">
                     <span className="w-6 h-6 rounded-full bg-green-500/20 text-green-500 text-xs flex items-center justify-center font-bold">
                       {index + 1}
@@ -445,11 +487,11 @@ export default function DailyTrackerPage() {
                   </div>
                 ))}
               </div>
-              
-              {weeklyEntry?.whyImportant && (
+
+              {supabaseWhyImportant && (
                 <div className="bg-green-500/10 rounded-lg p-4">
                   <h4 className="text-sm font-heading text-green-400 mb-2">Why this matters:</h4>
-                  <p className="text-sm text-mm-white">{weeklyEntry.whyImportant}</p>
+                  <p className="text-sm text-mm-white">{supabaseWhyImportant}</p>
                 </div>
               )}
               
@@ -516,7 +558,7 @@ export default function DailyTrackerPage() {
         )}
 
         {/* Friday Review in Left Column */}
-        {isFriday && weeklyEntry?.objectives && weeklyEntry.objectives.length > 0 && (
+        {isFriday && supabaseObjectives.length > 0 && (
           <div className="card-mm p-6 bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
@@ -531,7 +573,7 @@ export default function DailyTrackerPage() {
           <div className="space-y-4">
             <div>
               <h3 className="text-sm font-heading text-mm-gray mb-3">Mark completed objectives:</h3>
-              {weeklyEntry.objectives.map((objective, index) => (
+              {supabaseObjectives.map((objective, index) => (
                 <div key={objective.id} className="flex items-center gap-3 p-3 bg-mm-dark2/50 rounded-lg mb-2">
                   <button
                     onClick={() => toggleWeeklyObjective(objective.id)}
@@ -587,7 +629,7 @@ export default function DailyTrackerPage() {
               </div>
             ) : null}
 
-            {weeklyEntry.fridayReview && !showReviewForm && (
+            {supabaseFridayReview && !showReviewForm && (
               <div className="bg-green-500/10 rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
                   <h4 className="text-sm font-heading text-green-400">Weekly Review:</h4>
@@ -598,7 +640,7 @@ export default function DailyTrackerPage() {
                     Edit
                   </button>
                 </div>
-                <p className="text-sm text-mm-white">{weeklyEntry.fridayReview}</p>
+                <p className="text-sm text-mm-white">{supabaseFridayReview}</p>
               </div>
             )}
           </div>
@@ -1065,7 +1107,7 @@ export default function DailyTrackerPage() {
       {/* Two-column layout for Weekly Objectives and Tomorrow's MITs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Tuesday-Thursday: Display Weekly Objectives */}
-        {isTuesdayToThursday && weeklyEntry?.objectives && weeklyEntry.objectives.length > 0 ? (
+        {isTuesdayToThursday && supabaseObjectives.length > 0 ? (
           <div className="card-mm p-4 bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
@@ -1075,7 +1117,7 @@ export default function DailyTrackerPage() {
             </div>
 
             <div className="grid gap-2 mb-3">
-              {weeklyEntry.objectives.map((objective, index) => (
+              {supabaseObjectives.map((objective, index) => (
                 <div key={objective.id} className="flex items-center gap-2 text-sm">
                   <span className="w-4 h-4 rounded-full bg-green-500/20 text-green-500 text-xs flex items-center justify-center font-bold">
                     {index + 1}
@@ -1085,9 +1127,9 @@ export default function DailyTrackerPage() {
               ))}
             </div>
 
-            {weeklyEntry.whyImportant && (
+            {supabaseWhyImportant && (
               <div className="bg-green-500/10 rounded p-3">
-                <p className="text-xs text-green-300 italic">{weeklyEntry.whyImportant}</p>
+                <p className="text-xs text-green-300 italic">{supabaseWhyImportant}</p>
               </div>
             )}
           </div>
