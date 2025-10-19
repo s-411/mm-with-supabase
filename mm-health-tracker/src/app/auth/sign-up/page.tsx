@@ -44,13 +44,20 @@ export default function SignUpPage() {
 
       if (error) throw error;
 
-      // Show success message
-      setSuccess(true);
-
-      // If email confirmation is disabled, redirect immediately
+      // If we have a session, email confirmation is disabled - redirect immediately
       if (data.session) {
         router.push('/');
+        return;
       }
+
+      // If no session but user was created, email confirmation is enabled
+      if (data.user && !data.session) {
+        setSuccess(true);
+        return;
+      }
+
+      // Shouldn't reach here, but just in case
+      router.push('/auth/sign-in');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign up');
     } finally {
