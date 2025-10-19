@@ -18,16 +18,33 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
+      console.log('Attempting sign-in...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      console.log('Sign-in response:', { data, error });
 
-      // Redirect to home on success
-      router.push('/');
+      if (error) {
+        console.error('Sign-in error:', error);
+        throw error;
+      }
+
+      if (data.session) {
+        console.log('Session established, redirecting...');
+        // Wait a moment for session to propagate
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Force refresh and redirect
+        router.push('/');
+        router.refresh();
+      } else {
+        console.error('No session in response');
+        setError('Failed to establish session. Please try again.');
+      }
     } catch (err) {
+      console.error('Sign-in failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
       setLoading(false);
