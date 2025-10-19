@@ -343,7 +343,7 @@ export default function DailyTrackerPage() {
       weight: supabaseEntry?.weight !== null && supabaseEntry?.weight !== undefined,
       deepWork: supabaseEntry?.deep_work_completed || false,
       mits: tomorrowMITs.length > 0,
-      winnersBible: (dailyEntry?.winnersBibleMorning || false) || (dailyEntry?.winnersBibleNight || false),
+      winnersBible: (supabaseEntry?.winners_bible_morning || false) || (supabaseEntry?.winners_bible_night || false),
       injections: supabaseInjections.length > 0,
       nirvana: hasNirvanaSessions
     };
@@ -966,7 +966,7 @@ export default function DailyTrackerPage() {
               {/* Morning indicator */}
               <div className="flex items-center">
                 <SunIcon className="w-4 h-4 text-yellow-500 mr-1" />
-                {dailyEntry?.winnersBibleMorning ? (
+                {supabaseEntry?.winners_bible_morning ? (
                   <CheckCircleIconSolid className="w-5 h-5 text-green-500" />
                 ) : (
                   <CheckCircleIcon className="w-5 h-5 text-mm-gray/50" />
@@ -975,7 +975,7 @@ export default function DailyTrackerPage() {
               {/* Evening indicator */}
               <div className="flex items-center">
                 <MoonIcon className="w-4 h-4 text-blue-500 mr-1" />
-                {dailyEntry?.winnersBibleNight ? (
+                {supabaseEntry?.winners_bible_night ? (
                   <CheckCircleIconSolid className="w-5 h-5 text-green-500" />
                 ) : (
                   <CheckCircleIcon className="w-5 h-5 text-mm-gray/50" />
@@ -996,13 +996,13 @@ export default function DailyTrackerPage() {
               <div className="flex items-center">
                 <SunIcon className="w-5 h-5 text-yellow-500 mr-1" />
                 <span className="text-lg font-heading text-mm-white">
-                  {dailyEntry?.winnersBibleMorning ? '✓' : '○'}
+                  {supabaseEntry?.winners_bible_morning ? '✓' : '○'}
                 </span>
               </div>
               <div className="flex items-center">
                 <MoonIcon className="w-5 h-5 text-blue-500 mr-1" />
                 <span className="text-lg font-heading text-mm-white">
-                  {dailyEntry?.winnersBibleNight ? '✓' : '○'}
+                  {supabaseEntry?.winners_bible_night ? '✓' : '○'}
                 </span>
               </div>
             </div>
