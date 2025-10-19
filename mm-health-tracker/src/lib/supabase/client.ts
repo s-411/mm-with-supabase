@@ -32,10 +32,13 @@ export const createClerkSupabaseClient = (clerkToken: string) => {
   }
 
   // Create new client
+  // Send Clerk JWT in Authorization header
+  // Supabase's PostgREST will parse it and make claims available to clerk_user_id()
   const client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     global: {
       headers: {
-        Authorization: `Bearer ${clerkToken}`,
+        'apikey': supabaseAnonKey, // Required for API access
+        'Authorization': `Bearer ${clerkToken}`, // Clerk JWT for RLS
       },
     },
     auth: {
