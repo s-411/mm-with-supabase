@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { createClerkSupabaseClient } from '@/lib/supabase/client'
 import { WeeklyService } from '@/lib/services/weekly.service'
+import { ProfileService } from '@/lib/services/profile.service'
 import type { Database } from '@/lib/supabase/database.types'
 
 type WeeklyEntry = Database['public']['Tables']['weekly_entries']['Row']
@@ -48,7 +49,12 @@ export function useWeekly(weekStartDate: string): UseWeeklyReturn {
     if (!token) throw new Error('No auth token')
 
     const supabase = createClerkSupabaseClient(token)
-    return new WeeklyService(supabase, userId)
+    const profileService = new ProfileService(supabase)
+    const profile = await profileService.get(userId)
+
+    if (!profile) throw new Error('Profile not found')
+
+    return new WeeklyService(supabase, profile.id)
   }, [getToken, userId])
 
   const loadWeeklyEntry = useCallback(async () => {
