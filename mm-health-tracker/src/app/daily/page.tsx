@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { profileStorage, dailyEntryStorage, generateId, weeklyEntryStorage, getWeekStartDate, getDayOfWeek, timezoneStorage, winnersBibleStorage, nirvanaSessionStorage } from '@/lib/storage';
 import { DailyEntry, UserProfile, MITEntry, WeeklyEntry, WeeklyObjective } from '@/types';
+import { useMacroTargets } from '@/lib/hooks/useSettings';
 import { formatDateLong } from '@/lib/dateUtils';
 import {
   CalendarDaysIcon,
@@ -32,12 +33,9 @@ export default function DailyTrackerPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [weightInput, setWeightInput] = useState('');
   const [showWeightForm, setShowWeightForm] = useState(false);
-  const [macroTargets, setMacroTargets] = useState({
-    calories: '',
-    carbs: '',
-    protein: '',
-    fat: ''
-  });
+
+  // Load macro targets from Supabase
+  const { macroTargets } = useMacroTargets();
   const [showMITForm, setShowMITForm] = useState(false);
   const [mitInput, setMitInput] = useState('');
   const [tomorrowMITs, setTomorrowMITs] = useState<MITEntry[]>([]);
@@ -61,15 +59,8 @@ export default function DailyTrackerPage() {
   useEffect(() => {
     const existingProfile = profileStorage.get();
     setProfile(existingProfile);
-    
-    loadDayData(currentDate);
 
-    // Load macro targets from storage
-    const storedMacroTargets = localStorage.getItem('mm-macro-targets');
-    if (storedMacroTargets) {
-      const parsed = JSON.parse(storedMacroTargets);
-      setMacroTargets(parsed);
-    }
+    loadDayData(currentDate);
 
     // Load today's MITs (from the current day)
     const todayEntry = dailyEntryStorage.getByDate(currentDate);

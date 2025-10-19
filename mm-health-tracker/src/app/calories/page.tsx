@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { profileStorage, dailyEntryStorage, calculations, foodTemplateStorage, FoodTemplate, timezoneStorage } from '@/lib/storage';
 import { CalorieEntry, ExerciseEntry } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
+import { useMacroTargets } from '@/lib/hooks/useSettings';
 import { formatDateForDisplay, formatDateLong } from '@/lib/dateUtils';
 import { PlusIcon, XMarkIcon, RectangleStackIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
@@ -40,12 +41,9 @@ export default function CaloriesPage() {
     fatEaten: number;
     fatGoalMet: boolean;
   }>>([]);
-  const [macroTargets, setMacroTargets] = useState({
-    calories: '',
-    carbs: '',
-    protein: '',
-    fat: ''
-  });
+
+  // Load macro targets from Supabase
+  const { macroTargets } = useMacroTargets();
 
   const isToday = timezoneStorage.isToday(currentDate);
 
@@ -67,13 +65,6 @@ export default function CaloriesPage() {
     // Load food templates
     const templates = foodTemplateStorage.get();
     setFoodTemplates(templates);
-
-    // Load macro targets
-    const storedMacroTargets = localStorage.getItem('mm-macro-targets');
-    if (storedMacroTargets) {
-      const parsed = JSON.parse(storedMacroTargets);
-      setMacroTargets(parsed);
-    }
 
     loadHistoryData(profile?.bmr || 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps

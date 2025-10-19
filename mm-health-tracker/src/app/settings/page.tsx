@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useProfile } from '@/lib/context-supabase';
-import { useCompounds, useFoodTemplates, useNirvanaSessionTypes } from '@/lib/hooks/useSettings';
+import { useCompounds, useFoodTemplates, useNirvanaSessionTypes, useMacroTargets, useTrackerSettings } from '@/lib/hooks/useSettings';
 import type { Database } from '@/lib/supabase/database.types';
 import { profileStorage, dataExport, compoundStorage, foodTemplateStorage, FoodTemplate, injectionTargetStorage, nirvanaSessionTypesStorage, timezoneStorage, winnersBibleStorage } from '@/lib/storage';
 import { UserProfile, DailyTrackerSettings, InjectionTarget, WinnersBibleImage } from '@/types';
@@ -42,11 +42,18 @@ function SettingsPageContent() {
 
   // Supabase hooks for settings
   const { compounds, addCompound: addCompoundToSupabase, removeCompound: removeCompoundFromSupabase } = useCompounds();
+  const { templates: foodTemplates, addTemplate: addTemplateToSupabase, removeTemplate: removeTemplateFromSupabase } = useFoodTemplates();
+  const { sessionTypes: nirvanaSessionTypes, addSessionType: addSessionTypeToSupabase, removeSessionType: removeSessionTypeFromSupabase } = useNirvanaSessionTypes();
+  const { macroTargets: supabaseMacroTargets, updateMacroTargets: updateSupabaseMacroTargets } = useMacroTargets();
+  const { trackerSettings: supabaseTrackerSettings, updateTrackerSettings: updateSupabaseTrackerSettings } = useTrackerSettings();
 
   const [newCompound, setNewCompound] = useState('');
   const [showDeleteWarning, setShowDeleteWarning] = useState<string | null>(null);
   const [showDataClearWarning, setShowDataClearWarning] = useState(false);
-  const [foodTemplates, setFoodTemplates] = useState<FoodTemplate[]>([]);
+
+  // Local state for macro targets form
+  const [localMacroTargets, setLocalMacroTargets] = useState({ calories: '', carbs: '', protein: '', fat: '' });
+  const [macroTargetsChanged, setMacroTargetsChanged] = useState(false);
   const [newTemplate, setNewTemplate] = useState({
     name: '',
     calories: '',
@@ -55,7 +62,6 @@ function SettingsPageContent() {
     fat: ''
   });
   const [showTemplateForm, setShowTemplateForm] = useState(false);
-  const [templatesChanged, setTemplatesChanged] = useState(false);
   const [dailyTrackerSettings, setDailyTrackerSettings] = useState<DailyTrackerSettings>({
     enableWeight: true,
     enableDeepWork: true,
@@ -67,22 +73,13 @@ function SettingsPageContent() {
       { id: 'hydration', name: 'Water Intake', type: 'number', enabled: false, unit: 'glasses' }
     ]
   });
-  const [macroTargets, setMacroTargets] = useState({
-    calories: '',
-    carbs: '',
-    protein: '',
-    fat: ''
-  });
-  const [macroTargetsChanged, setMacroTargetsChanged] = useState(false);
   const [injectionTargets, setInjectionTargets] = useState<InjectionTarget[]>([]);
 
   // Timezone state
   const [userTimezone, setUserTimezone] = useState<string>('');
 
   // Nirvana session types state
-  const [nirvanaSessionTypes, setNirvanaSessionTypes] = useState<string[]>([]);
   const [newSessionType, setNewSessionType] = useState('');
-  const [sessionTypesChanged, setSessionTypesChanged] = useState(false);
   const [showTargetForm, setShowTargetForm] = useState(false);
   const [editingTarget, setEditingTarget] = useState<InjectionTarget | null>(null);
   const [newTarget, setNewTarget] = useState({
@@ -108,6 +105,25 @@ function SettingsPageContent() {
     }
   }, [profile]);
 
+  // Sync local macro targets when Supabase data loads
+  useEffect(() => {
+    setLocalMacroTargets(supabaseMacroTargets);
+  }, [supabaseMacroTargets]);
+
+  // Sync local tracker settings when Supabase data loads
+  useEffect(() => {
+    if (supabaseTrackerSettings && Object.keys(supabaseTrackerSettings).length > 0) {
+      setDailyTrackerSettings(supabaseTrackerSettings);
+    }
+  }, [supabaseTrackerSettings]);
+
+  // Sync timezone from profile
+  useEffect(() => {
+    if (profile?.timezone) {
+      setUserTimezone(profile.timezone);
+    }
+  }, [profile?.timezone]);
+
   useEffect(() => {
     // Check if profile is complete
     const profileComplete = !!(
@@ -125,37 +141,13 @@ function SettingsPageContent() {
       }, 2000); // Give user time to see completion message
     }
 
-    // Load food templates from storage
-    const storedTemplates = foodTemplateStorage.get();
-    setFoodTemplates(storedTemplates);
-
-    // Load daily tracker settings from storage
-    const storedTrackerSettings = localStorage.getItem('mm-daily-tracker-settings');
-    if (storedTrackerSettings) {
-      const parsed = JSON.parse(storedTrackerSettings);
-      setDailyTrackerSettings(parsed);
-    }
-
-    // Load macro targets from storage
-    const storedMacroTargets = localStorage.getItem('mm-macro-targets');
-    if (storedMacroTargets) {
-      const parsed = JSON.parse(storedMacroTargets);
-      setMacroTargets(parsed);
-    }
+    // Tracker settings are now loaded from Supabase via useTrackerSettings hook
 
     // Load injection targets from storage
     const storedInjectionTargets = injectionTargetStorage.get();
     setInjectionTargets(storedInjectionTargets);
 
-    // Load timezone from storage
-    const storedTimezone = timezoneStorage.get();
-    if (storedTimezone) {
-      setUserTimezone(storedTimezone);
-    }
-
-    // Load nirvana session types from storage
-    const storedSessionTypes = nirvanaSessionTypesStorage.get();
-    setNirvanaSessionTypes(storedSessionTypes);
+    // Timezone is now loaded from profile via useProfile hook
 
     // Load Winners Bible images from storage
     const storedImages = winnersBibleStorage.getImages();
@@ -216,61 +208,78 @@ function SettingsPageContent() {
     }
   };
 
-  const addTemplate = () => {
+  const addTemplate = async () => {
     if (newTemplate.name.trim() && newTemplate.calories.trim()) {
-      const updated = foodTemplateStorage.add({
-        name: newTemplate.name.trim(),
-        calories: parseInt(newTemplate.calories) || 0,
-        carbs: parseInt(newTemplate.carbs) || 0,
-        protein: parseInt(newTemplate.protein) || 0,
-        fat: parseInt(newTemplate.fat) || 0
-      });
-      setFoodTemplates(updated);
-      setNewTemplate({ name: '', calories: '', carbs: '', protein: '', fat: '' });
-      setShowTemplateForm(false);
-      setTemplatesChanged(true);
+      try {
+        await addTemplateToSupabase({
+          name: newTemplate.name.trim(),
+          calories: parseInt(newTemplate.calories) || 0,
+          carbs: parseInt(newTemplate.carbs) || 0,
+          protein: parseInt(newTemplate.protein) || 0,
+          fat: parseInt(newTemplate.fat) || 0
+        });
+        setNewTemplate({ name: '', calories: '', carbs: '', protein: '', fat: '' });
+        setShowTemplateForm(false);
+      } catch (error) {
+        console.error('Error adding food template:', error);
+        alert('Failed to add food template. Please try again.');
+      }
     }
   };
 
-  const removeTemplate = (templateId: string) => {
-    const updated = foodTemplateStorage.remove(templateId);
-    setFoodTemplates(updated);
-    setTemplatesChanged(true);
+  const removeTemplate = async (templateId: string) => {
+    try {
+      await removeTemplateFromSupabase(templateId);
+    } catch (error) {
+      console.error('Error removing food template:', error);
+      alert('Failed to remove food template. Please try again.');
+    }
   };
 
-  const saveTemplates = () => {
-    setTemplatesChanged(false);
-  };
-
-  const updateDailyTrackerSetting = (key: string, value: boolean) => {
+  const updateDailyTrackerSetting = async (key: string, value: boolean) => {
     const updated = { ...dailyTrackerSettings, [key]: value };
     setDailyTrackerSettings(updated);
-    localStorage.setItem('mm-daily-tracker-settings', JSON.stringify(updated));
+    try {
+      await updateSupabaseTrackerSettings(updated);
+    } catch (error) {
+      console.error('Error updating tracker setting:', error);
+      alert('Failed to save tracker setting. Please try again.');
+    }
   };
 
-  const toggleCustomMetric = (metricId: string) => {
+  const toggleCustomMetric = async (metricId: string) => {
     const updated = {
       ...dailyTrackerSettings,
       customMetrics: dailyTrackerSettings.customMetrics.map(metric =>
-        metric.id === metricId 
+        metric.id === metricId
           ? { ...metric, enabled: !metric.enabled }
           : metric
       )
     };
     setDailyTrackerSettings(updated);
-    localStorage.setItem('mm-daily-tracker-settings', JSON.stringify(updated));
+    try {
+      await updateSupabaseTrackerSettings(updated);
+    } catch (error) {
+      console.error('Error toggling custom metric:', error);
+      alert('Failed to update custom metric. Please try again.');
+    }
   };
 
   const updateMacroTarget = (key: string, value: string) => {
-    const updated = { ...macroTargets, [key]: value };
-    setMacroTargets(updated);
+    const updated = { ...localMacroTargets, [key]: value };
+    setLocalMacroTargets(updated);
     setMacroTargetsChanged(true);
   };
 
-  const saveMacroTargets = () => {
-    localStorage.setItem('mm-macro-targets', JSON.stringify(macroTargets));
-    setMacroTargetsChanged(false);
-    alert('Macro targets saved successfully!');
+  const saveMacroTargets = async () => {
+    try {
+      await updateSupabaseMacroTargets(localMacroTargets);
+      setMacroTargetsChanged(false);
+      alert('Macro targets saved successfully!');
+    } catch (error) {
+      console.error('Error saving macro targets:', error);
+      alert('Failed to save macro targets. Please try again.');
+    }
   };
 
   const addInjectionTarget = () => {
@@ -318,23 +327,25 @@ function SettingsPageContent() {
   };
 
   // Nirvana session types functions
-  const addSessionType = () => {
-    if (newSessionType.trim() && !nirvanaSessionTypes.includes(newSessionType.trim())) {
-      nirvanaSessionTypesStorage.add(newSessionType.trim());
-      setNirvanaSessionTypes(nirvanaSessionTypesStorage.get());
-      setNewSessionType('');
-      setSessionTypesChanged(true);
+  const addSessionType = async () => {
+    if (newSessionType.trim() && !nirvanaSessionTypes.some(st => st.name === newSessionType.trim())) {
+      try {
+        await addSessionTypeToSupabase(newSessionType.trim());
+        setNewSessionType('');
+      } catch (error) {
+        console.error('Error adding session type:', error);
+        alert('Failed to add session type. Please try again.');
+      }
     }
   };
 
-  const removeSessionType = (sessionType: string) => {
-    nirvanaSessionTypesStorage.remove(sessionType);
-    setNirvanaSessionTypes(nirvanaSessionTypesStorage.get());
-    setSessionTypesChanged(true);
-  };
-
-  const saveSessionTypes = () => {
-    setSessionTypesChanged(false);
+  const removeSessionType = async (sessionTypeId: string) => {
+    try {
+      await removeSessionTypeFromSupabase(sessionTypeId);
+    } catch (error) {
+      console.error('Error removing session type:', error);
+      alert('Failed to remove session type. Please try again.');
+    }
   };
 
   const exportData = () => {
@@ -579,9 +590,15 @@ function SettingsPageContent() {
             <label className="block text-sm text-mm-gray mb-2">Your Time Zone</label>
             <select
               value={userTimezone}
-              onChange={(e) => {
-                setUserTimezone(e.target.value);
-                timezoneStorage.save(e.target.value);
+              onChange={async (e) => {
+                const newTimezone = e.target.value;
+                setUserTimezone(newTimezone);
+                try {
+                  await updateSupabaseProfile({ timezone: newTimezone });
+                } catch (error) {
+                  console.error('Error saving timezone:', error);
+                  alert('Failed to save timezone. Please try again.');
+                }
               }}
               className="input-mm w-full"
             >
@@ -631,7 +648,7 @@ function SettingsPageContent() {
               <label className="block text-sm text-mm-gray mb-2">Daily Calorie Target</label>
               <input
                 type="number"
-                value={macroTargets.calories}
+                value={localMacroTargets.calories}
                 onChange={(e) => updateMacroTarget('calories', e.target.value)}
                 className="input-mm w-full"
               />
@@ -641,7 +658,7 @@ function SettingsPageContent() {
               <label className="block text-sm text-mm-gray mb-2">Carbs Target (g)</label>
               <input
                 type="number"
-                value={macroTargets.carbs}
+                value={localMacroTargets.carbs}
                 onChange={(e) => updateMacroTarget('carbs', e.target.value)}
                 className="input-mm w-full"
               />
@@ -651,7 +668,7 @@ function SettingsPageContent() {
               <label className="block text-sm text-mm-gray mb-2">Protein Target (g)</label>
               <input
                 type="number"
-                value={macroTargets.protein}
+                value={localMacroTargets.protein}
                 onChange={(e) => updateMacroTarget('protein', e.target.value)}
                 className="input-mm w-full"
               />
@@ -661,7 +678,7 @@ function SettingsPageContent() {
               <label className="block text-sm text-mm-gray mb-2">Fat Target (g)</label>
               <input
                 type="number"
-                value={macroTargets.fat}
+                value={localMacroTargets.fat}
                 onChange={(e) => updateMacroTarget('fat', e.target.value)}
                 className="input-mm w-full"
               />
@@ -947,10 +964,10 @@ function SettingsPageContent() {
           {/* Session Type List */}
           <div className="space-y-3 mb-6">
             {nirvanaSessionTypes.map((sessionType) => (
-              <div key={sessionType} className="flex items-center justify-between p-3 bg-mm-dark2 rounded-lg">
-                <span className="text-mm-white">{sessionType}</span>
+              <div key={sessionType.id} className="flex items-center justify-between p-3 bg-mm-dark2 rounded-lg">
+                <span className="text-mm-white">{sessionType.name}</span>
                 <button
-                  onClick={() => removeSessionType(sessionType)}
+                  onClick={() => removeSessionType(sessionType.id)}
                   className="p-1 hover:bg-red-500/20 rounded"
                   title="Remove session type"
                 >
@@ -978,18 +995,6 @@ function SettingsPageContent() {
               <PlusIcon className="w-4 h-4" />
             </button>
           </div>
-
-          {sessionTypesChanged && (
-            <div className="mt-4 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-              <p className="text-sm text-orange-400 mb-2">Session types have been updated automatically.</p>
-              <button
-                onClick={saveSessionTypes}
-                className="text-xs text-orange-300 hover:text-orange-200"
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
 
           <p className="text-xs text-mm-gray mt-4">
             These session types will appear as clickable options on the Nirvana tracking page
@@ -1241,23 +1246,6 @@ function SettingsPageContent() {
             </p>
           </div>
 
-          {/* Save Button */}
-          {templatesChanged && (
-            <div className="mt-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-orange-500">Templates Updated</p>
-                  <p className="text-sm text-mm-gray">Your food templates have been automatically saved</p>
-                </div>
-                <button
-                  onClick={saveTemplates}
-                  className="btn-mm py-2 px-4"
-                >
-                  Acknowledge
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Daily Tracker Settings */}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { profileStorage, dailyEntryStorage, calculations, nirvanaSessionStorage, bodyPartMappingStorage, sessionCorrelationStorage } from '@/lib/storage';
 import { UserProfile, NirvanaEntry, BodyPartUsage, CorrelationAnalysis } from '@/types';
+import { useMacroTargets } from '@/lib/hooks/useSettings';
 import { formatDate } from '@/lib/dateUtils';
 import {
   LineChart,
@@ -69,23 +70,13 @@ export default function AnalyticsPage() {
   const [weightScaleMax, setWeightScaleMax] = useState<number>(90);
   const [showLinearTrend, setShowLinearTrend] = useState<boolean>(false);
   const [showMovingAverage, setShowMovingAverage] = useState<boolean>(false);
-  const [macroTargets, setMacroTargets] = useState({
-    calories: '',
-    carbs: '',
-    protein: '',
-    fat: ''
-  });
+
+  // Load macro targets from Supabase
+  const { macroTargets } = useMacroTargets();
 
   useEffect(() => {
     const existingProfile = profileStorage.get();
     setProfile(existingProfile);
-
-    // Load macro targets
-    const storedMacroTargets = localStorage.getItem('mm-macro-targets');
-    if (storedMacroTargets) {
-      const parsed = JSON.parse(storedMacroTargets);
-      setMacroTargets(parsed);
-    }
 
     loadAnalyticsData();
   // eslint-disable-next-line react-hooks/exhaustive-deps

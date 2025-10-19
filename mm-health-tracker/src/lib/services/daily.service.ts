@@ -11,6 +11,8 @@ type ExerciseEntry = Database['public']['Tables']['exercise_entries']['Row']
 type ExerciseEntryInsert = Database['public']['Tables']['exercise_entries']['Insert']
 type InjectionEntry = Database['public']['Tables']['injection_entries']['Row']
 type InjectionEntryInsert = Database['public']['Tables']['injection_entries']['Insert']
+type MITEntry = Database['public']['Tables']['mits']['Row']
+type MITEntryInsert = Database['public']['Tables']['mits']['Insert']
 
 export class DailyService {
   constructor(
@@ -286,6 +288,100 @@ export class DailyService {
 
     if (error) {
       throw new Error(`Failed to delete injection entry: ${error.message}`)
+    }
+  }
+
+  // ==================== MIT ENTRIES ====================
+
+  /**
+   * Get MITs for a date
+   */
+  async getMITs(date: string): Promise<MITEntry[]> {
+    const { data, error } = await this.supabase
+      .from('mits')
+      .select('*')
+      .eq('user_id', this.userId)
+      .eq('date', date)
+      .order('order_index', { ascending: true })
+
+    if (error) {
+      throw new Error(`Failed to fetch MITs: ${error.message}`)
+    }
+
+    return data || []
+  }
+
+  /**
+   * Add MIT entry
+   */
+  async addMIT(
+    date: string,
+    taskDescription: string,
+    orderIndex: number = 0
+  ): Promise<MITEntry> {
+    const { data, error } = await this.supabase
+      .from('mits')
+      .insert({
+        user_id: this.userId,
+        date,
+        task_description: taskDescription,
+        order_index: orderIndex,
+        completed: false,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Failed to add MIT: ${error.message}`)
+    }
+
+    return data
+  }
+
+  /**
+   * Toggle MIT completion status
+   */
+  async toggleMIT(mitId: string): Promise<MITEntry> {
+    // First get current state
+    const { data: currentMIT, error: fetchError } = await this.supabase
+      .from('mits')
+      .select('completed')
+      .eq('id', mitId)
+      .eq('user_id', this.userId)
+      .single()
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch MIT: ${fetchError.message}`)
+    }
+
+    // Toggle it
+    const { data, error } = await this.supabase
+      .from('mits')
+      .update({ completed: !currentMIT.completed })
+      .eq('id', mitId)
+      .eq('user_id', this.userId)
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Failed to toggle MIT: ${error.message}`)
+    }
+
+    return data
+  }
+
+  /**
+   * Delete MIT entry
+   */
+  async deleteMIT(mitId: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('mits')
+      .delete()
+      .eq('id', mitId)
+      .eq('user_id', this.userId)
+
+    if (error) {
+      throw new Error(`Failed to delete MIT: ${error.message}`)
     }
   }
 

@@ -226,3 +226,111 @@ export function useNirvanaSessionTypes() {
     reload: loadSessionTypes,
   };
 }
+
+export function useMacroTargets() {
+  const { getToken, userId } = useAuth();
+  const [macroTargets, setMacroTargets] = useState({ calories: '', carbs: '', protein: '', fat: '' });
+  const [loading, setLoading] = useState(true);
+
+  const loadMacroTargets = useCallback(async () => {
+    if (!userId) {
+      setMacroTargets({ calories: '', carbs: '', protein: '', fat: '' });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = await getToken({ template: 'supabase' });
+      if (!token) throw new Error('No auth token');
+
+      const supabase = createClerkSupabaseClient(token);
+      const settingsService = new SettingsService(supabase, userId);
+
+      const data = await settingsService.getMacroTargets();
+      setMacroTargets(data);
+    } catch (err) {
+      console.error('Error loading macro targets:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [getToken, userId]);
+
+  useEffect(() => {
+    loadMacroTargets();
+  }, [loadMacroTargets]);
+
+  const updateMacroTargets = useCallback(async (targets: { calories: string; carbs: string; protein: string; fat: string }) => {
+    if (!userId) throw new Error('Not authenticated');
+
+    const token = await getToken({ template: 'supabase' });
+    if (!token) throw new Error('No auth token');
+
+    const supabase = createClerkSupabaseClient(token);
+    const settingsService = new SettingsService(supabase, userId);
+
+    await settingsService.updateMacroTargets(targets);
+    setMacroTargets(targets);
+  }, [getToken, userId]);
+
+  return {
+    macroTargets,
+    loading,
+    updateMacroTargets,
+    reload: loadMacroTargets,
+  };
+}
+
+export function useTrackerSettings() {
+  const { getToken, userId } = useAuth();
+  const [trackerSettings, setTrackerSettings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadTrackerSettings = useCallback(async () => {
+    if (!userId) {
+      setTrackerSettings(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = await getToken({ template: 'supabase' });
+      if (!token) throw new Error('No auth token');
+
+      const supabase = createClerkSupabaseClient(token);
+      const settingsService = new SettingsService(supabase, userId);
+
+      const data = await settingsService.getTrackerSettings();
+      setTrackerSettings(data);
+    } catch (err) {
+      console.error('Error loading tracker settings:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [getToken, userId]);
+
+  useEffect(() => {
+    loadTrackerSettings();
+  }, [loadTrackerSettings]);
+
+  const updateTrackerSettings = useCallback(async (settings: any) => {
+    if (!userId) throw new Error('Not authenticated');
+
+    const token = await getToken({ template: 'supabase' });
+    if (!token) throw new Error('No auth token');
+
+    const supabase = createClerkSupabaseClient(token);
+    const settingsService = new SettingsService(supabase, userId);
+
+    await settingsService.updateTrackerSettings(settings);
+    setTrackerSettings(settings);
+  }, [getToken, userId]);
+
+  return {
+    trackerSettings,
+    loading,
+    updateTrackerSettings,
+    reload: loadTrackerSettings,
+  };
+}
