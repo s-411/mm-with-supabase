@@ -8,11 +8,13 @@ import type { Database } from '@/lib/supabase/database.types';
 type DailyEntry = Database['public']['Tables']['daily_entries']['Row'];
 type CalorieEntry = Database['public']['Tables']['calorie_entries']['Row'];
 type ExerciseEntry = Database['public']['Tables']['exercise_entries']['Row'];
+type MITEntry = Database['public']['Tables']['mit_entries']['Row'];
 
 interface DailyData {
   entry: DailyEntry | null;
   calories: CalorieEntry[];
   exercises: ExerciseEntry[];
+  mits: MITEntry[];
 }
 
 export function useDaily(date: string) {
@@ -21,6 +23,7 @@ export function useDaily(date: string) {
     entry: null,
     calories: [],
     exercises: [],
+    mits: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +45,7 @@ export function useDaily(date: string) {
 
   const loadDailyData = useCallback(async () => {
     if (!userId) {
-      setData({ entry: null, calories: [], exercises: [] });
+      setData({ entry: null, calories: [], exercises: [], mits: [] });
       setLoading(false);
       return;
     }
@@ -52,13 +55,14 @@ export function useDaily(date: string) {
       setError(null);
 
       const dailyService = await getDailyService();
-      const [entry, calories, exercises] = await Promise.all([
+      const [entry, calories, exercises, mits] = await Promise.all([
         dailyService.getByDate(date),
         dailyService.getCalorieEntries(date),
         dailyService.getExerciseEntries(date),
+        dailyService.getMITs(date),
       ]);
 
-      setData({ entry, calories, exercises });
+      setData({ entry, calories, exercises, mits });
     } catch (err) {
       console.error('Error loading daily data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load daily data');
@@ -191,11 +195,65 @@ export function useDaily(date: string) {
     }
   }, [date, getDailyService]);
 
+  // ============================================
+  // MIT METHODS
+  // ============================================
+
+  const addMIT = useCallback(async (taskDescription: string, orderIndex: number = 0) => {
+    try {
+      const dailyService = await getDailyService();
+      const newMIT = await dailyService.addMIT(date, taskDescription, orderIndex);
+
+      setData(prev => ({
+        ...prev,
+        mits: [...prev.mits, newMIT],
+      }));
+
+      return newMIT;
+    } catch (err) {
+      console.error('Error adding MIT:', err);
+      throw err;
+    }
+  }, [date, getDailyService]);
+
+  const toggleMIT = useCallback(async (mitId: string) => {
+    try {
+      const dailyService = await getDailyService();
+      const updatedMIT = await dailyService.toggleMIT(mitId);
+
+      setData(prev => ({
+        ...prev,
+        mits: prev.mits.map(m => m.id === mitId ? updatedMIT : m),
+      }));
+
+      return updatedMIT;
+    } catch (err) {
+      console.error('Error toggling MIT:', err);
+      throw err;
+    }
+  }, [getDailyService]);
+
+  const deleteMIT = useCallback(async (mitId: string) => {
+    try {
+      const dailyService = await getDailyService();
+      await dailyService.deleteMIT(mitId);
+
+      setData(prev => ({
+        ...prev,
+        mits: prev.mits.filter(m => m.id !== mitId),
+      }));
+    } catch (err) {
+      console.error('Error deleting MIT:', err);
+      throw err;
+    }
+  }, [getDailyService]);
+
   return {
     // Data
     entry: data.entry,
     calories: data.calories,
     exercises: data.exercises,
+    mits: data.mits,
     loading,
     error,
 
@@ -206,6 +264,9 @@ export function useDaily(date: string) {
     removeExerciseEntry,
     updateWeight,
     toggleDeepWork,
+    addMIT,
+    toggleMIT,
+    deleteMIT,
     reload: loadDailyData,
   };
 }
