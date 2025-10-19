@@ -1,0 +1,174 @@
+{
+  "name": "MM Design System Tokens",
+  "version": "1.0.0",
+  "typography": {
+    "fonts": {
+      "heading": {
+        "family": "National2Condensed",
+        "fallback": "'Arial Black', sans-serif",
+        "cssVar": "--font-family-heading",
+        "weight": "bold",
+        "files": ["National-2-Condensed-Bold.ttf"],
+        "usage": "All headings (h1-h6), brand text, emphasis"
+      },
+      "body": {
+        "family": "ESKlarheit",
+        "fallback": "'Inter', system-ui, sans-serif",
+        "cssVar": "--font-family-body",
+        "weight": "normal",
+        "files": ["ESKlarheitGrotesk-Rg.otf"],
+        "usage": "Body text, UI components, general content"
+      }
+    },
+    "scale": {
+      "h1": "2.5rem",
+      "h2": "2rem",
+      "h3": "1.5rem",
+      "h4": "1.25rem",
+      "h5": "1rem",
+      "h6": "0.875rem",
+      "body": "1rem",
+      "small": "0.875rem",
+      "xs": "0.75rem"
+    },
+    "lineHeight": {
+      "heading": "1.2",
+      "body": "1.6"
+    },
+    "letterSpacing": {
+      "heading": "-0.02em",
+      "body": "0",
+      "uppercase": "0.05em"
+    }
+  },
+  "spacing": {
+    "padding": {
+      "button": "0.75rem 1.5rem",
+      "input": "0.75rem",
+      "card": "1.5rem",
+      "modal": "2rem",
+      "section": "2rem 0"
+    },
+    "margin": {
+      "component": "1rem 0",
+      "section": "2rem 0",
+      "element": "0.5rem 0"
+    },
+    "gap": {
+      "tight": "0.25rem",
+      "normal": "0.5rem",
+      "comfortable": "0.75rem",
+      "loose": "1rem",
+      "spacious": "1.5rem"
+    }
+  },
+  "borderRadius": {
+    "button": "100px",
+    "card": "0.5rem",
+    "input": "0.5rem",
+    "modal": "0.5rem",
+    "cssVars": {
+      "mm": "--radius-mm (100px)",
+      "card": "--radius-card (0.5rem)",
+      "input": "--radius-input (0.5rem)"
+    }
+  },
+  "transitions": {
+    "fast": "0.2s",
+    "medium": "0.3s",
+    "slow": "0.5s",
+    "easing": {
+      "default": "ease",
+      "inOut": "ease-in-out",
+      "out": "ease-out",
+      "cubic": "cubic-bezier(0.4, 0, 0.6, 1)"
+    },
+    "cssVars": {
+      "fast": "--transition-fast",
+      "medium": "--transition-medium",
+      "slow": "--transition-slow"
+    }
+  },
+  "shadows": {
+    "focus": "0 0 0 2px color-mix(in srgb, var(--color-mm-blue) 20%, transparent)",
+    "card": "none",
+    "modal": "none",
+    "description": "Minimal shadow usage, focus on borders and colors"
+  },
+  "animations": {
+    "fadeIn": {
+      "duration": "0.5s",
+      "easing": "ease-in-out",
+      "className": "animate-fade-in"
+    },
+    "slideUp": {
+      "duration": "0.3s",
+      "easing": "ease-out",
+      "className": "animate-slide-up"
+    },
+    "slideIn": {
+      "duration": "0.3s",
+      "easing": "ease-out",
+      "className": "animate-slide-in"
+    },
+    "pulse": {
+      "duration": "2s",
+      "easing": "cubic-bezier(0.4, 0, 0.6, 1)",
+      "className": "animate-pulse"
+    }
+  },
+  "breakpoints": {
+    "mobile": "max-width: 768px",
+    "tablet": "769px to 1024px",
+    "desktop": "min-width: 1025px",
+    "mobileFirst": true
+  },
+  "zIndex": {
+    "modal": 50,
+    "backdrop": 40,
+    "navigation": 30,
+    "dropdown": 20,
+    "tooltip": 10
+  },
+  "componentTokens": {
+    "buttons": {
+      "primary": {
+        "background": "var(--color-mm-blue)",
+        "color": "var(--color-mm-dark)",
+        "padding": "0.75rem 1.5rem",
+        "borderRadius": "var(--radius-mm)",
+        "fontWeight": "bold"
+      },
+      "secondary": {
+        "background": "transparent",
+        "color": "var(--color-mm-white)",
+        "border": "1px solid var(--color-mm-gray)",
+        "padding": "0.75rem 1.5rem",
+        "borderRadius": "var(--radius-mm)",
+        "fontWeight": "bold"
+      }
+    },
+    "inputs": {
+      "default": {
+        "background": "color-mix(in srgb, var(--color-mm-dark) 50%, transparent)",
+        "border": "1px solid color-mix(in srgb, var(--color-mm-gray) 30%, transparent)",
+        "padding": "0.75rem",
+        "borderRadius": "var(--radius-input)",
+        "focusBorder": "var(--color-mm-blue)"
+      }
+    },
+    "cards": {
+      "default": {
+        "background": "var(--color-mm-dark)",
+        "border": "1px solid color-mix(in srgb, var(--color-mm-gray) 20%, transparent)",
+        "borderRadius": "var(--radius-card)",
+        "padding": "1.5rem"
+      },
+      "glass": {
+        "background": "color-mix(in srgb, var(--color-mm-dark) 80%, transparent)",
+        "backdropFilter": "blur(4px)",
+        "border": "1px solid color-mix(in srgb, var(--color-mm-gray) 20%, transparent)"
+      }
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "name": "mm-design-system",
+  "version": "1.0.0",
+  "description": "MM Design System - Complete styling package for Measured Managed applications",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "design-system",
+    "tailwindcss",
+    "css",
+    "components",
+    "styling"
+  ],
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "tailwindcss": "^4.1.0",
+    "postcss": "^8.4.41"
+  },
+  "peerDependencies": {
+    "next": ">=14.0.0",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "optionalDependencies": {
+    "@heroicons/react": "^2.2.0",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0"
+  },
+  "files": [
+    "styles/",
+    "fonts/",
+    "config/",
+    "examples/",
+    "README.md"
+  ],
+  "main": "styles/globals.css",
+  "repository": {
+    "type": "git",
+    "url": "Design system extracted from MM v2 application"
+  },
+  "license": "MIT"
+}

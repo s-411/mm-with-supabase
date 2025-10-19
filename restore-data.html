@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restore MM Health Data</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1f1f1f;
+            color: #ffffff;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00A1FE;
+            border-bottom: 2px solid #00A1FE;
+            padding-bottom: 10px;
+        }
+        .section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        button {
+            background: #00A1FE;
+            color: #1f1f1f;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 100px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px 10px 0;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0088d4;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .warning {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #51cf66;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .info {
+            background: #339af0;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        #drop-zone {
+            border: 3px dashed #00A1FE;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #drop-zone:hover {
+            background: #2a2a2a;
+            border-color: #0088d4;
+        }
+        #drop-zone.dragover {
+            background: #00A1FE;
+            color: #1f1f1f;
+        }
+        .preview {
+            background: #1f1f1f;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .stat {
+            display: inline-block;
+            background: #00A1FE;
+            color: #1f1f1f;
+            padding: 8px 16px;
+            border-radius: 8px;
+            margin: 5px;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        code {
+            background: #1f1f1f;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 Restore MM Health Data</h1>
+
+    <div class="info">
+        <h3>📋 Instructions</h3>
+        <ol>
+            <li>Make sure you're running the app locally (<code>npm run dev</code>)</li>
+            <li>Open <code>http://localhost:3000</code> in another tab (don't navigate away from it yet)</li>
+            <li>Come back to this tab and drop/select your backup JSON file below</li>
+            <li>Review the data preview and click "Restore to LocalStorage"</li>
+            <li>Refresh your app tab - all your data will be back!</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>Upload Backup File</h2>
+        <div id="drop-zone">
+            <p style="font-size: 48px; margin: 0;">📁</p>
+            <p style="font-size: 18px; margin: 10px 0;">Drop your backup JSON file here</p>
+            <p style="color: #ababab;">or</p>
+            <button onclick="document.getElementById('file-input').click()">Browse Files</button>
+            <input type="file" id="file-input" accept=".json" onchange="handleFileSelect(event)">
+        </div>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        let backupData = null;
+
+        // Drag and drop handlers
+        const dropZone = document.getElementById('drop-zone');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.json')) {
+                alert('Please select a JSON file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const content = JSON.parse(e.target.result);
+                    processBackup(content);
+                } catch (error) {
+                    alert('Error reading file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function processBackup(data) {
+            const resultsDiv = document.getElementById('results');
+            backupData = data;
+
+            // Detect backup format
+            let format = 'unknown';
+            let stats = {
+                dailyEntries: 0,
+                weeklyEntries: 0,
+                profile: false,
+                compounds: 0,
+                injectionTargets: 0,
+                foodTemplates: 0
+            };
+
+            // Check if it's raw localStorage format (keys as properties)
+            if (data['mm-health-profile'] !== undefined) {
+                format = 'raw-localstorage';
+
+                // Count entries
+                Object.keys(data).forEach(key => {
+                    if (key.startsWith('mm-daily-entry-')) stats.dailyEntries++;
+                    if (key.startsWith('mm-weekly-entry-')) stats.weeklyEntries++;
+                    if (key === 'mm-health-profile') stats.profile = true;
+                    if (key === 'mm-compounds') {
+                        const compounds = JSON.parse(data[key]);
+                        stats.compounds = compounds.length;
+                    }
+                    if (key === 'mm-injection-targets') {
+                        const targets = JSON.parse(data[key]);
+                        stats.injectionTargets = targets.length;
+                    }
+                    if (key === 'mm-food-templates') {
+                        const templates = JSON.parse(data[key]);
+                        stats.foodTemplates = templates.length;
+                    }
+                });
+            }
+            // Check if it's structured format
+            else if (data.profile !== undefined || data.dailyEntries !== undefined) {
+                format = 'structured';
+
+                if (data.profile) stats.profile = true;
+                if (data.dailyEntries) stats.dailyEntries = Object.keys(data.dailyEntries).length;
+                if (data.compounds) stats.compounds = data.compounds.length;
+            }
+
+            let html = `
+                <div class="success">
+                    <h3>✅ Backup File Loaded!</h3>
+                    <p>Format detected: <strong>${format}</strong></p>
+                </div>
+
+                <div class="section">
+                    <h3>📊 Data Summary</h3>
+                    <div>
+                        <span class="stat">Daily Entries: ${stats.dailyEntries}</span>
+                        <span class="stat">Weekly Entries: ${stats.weeklyEntries}</span>
+                        <span class="stat">Profile: ${stats.profile ? '✓' : '✗'}</span>
+                        <span class="stat">Compounds: ${stats.compounds}</span>
+                        <span class="stat">Injection Targets: ${stats.injectionTargets}</span>
+                        <span class="stat">Food Templates: ${stats.foodTemplates}</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>⚠️ Important Warning</h3>
+                    <p>This will <strong>OVERWRITE</strong> any existing MM Health data in your browser's localStorage.</p>
+                    <p>If you have any current data you want to keep, export it first using the check-localstorage.html tool.</p>
+
+                    <button onclick="restoreData()" style="font-size: 18px; padding: 15px 30px;">
+                        ✅ Restore Data to LocalStorage
+                    </button>
+                </div>
+
+                <div class="section">
+                    <h3>🔍 Data Preview</h3>
+                    <details>
+                        <summary style="cursor: pointer; font-weight: bold; margin-bottom: 10px;">Click to view raw data</summary>
+                        <div class="preview">
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    </details>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function restoreData() {
+            if (!backupData) {
+                alert('No backup data loaded!');
+                return;
+            }
+
+            if (!confirm('Are you sure? This will overwrite any existing data in localStorage.')) {
+                return;
+            }
+
+            try {
+                let keysRestored = 0;
+
+                // Handle raw localStorage format
+                if (backupData['mm-health-profile'] !== undefined) {
+                    Object.keys(backupData).forEach(key => {
+                        if (key.startsWith('mm-') || key === 'exportDate' || key === 'exportVersion' || key === 'browser') {
+                            if (key !== 'exportDate' && key !== 'exportVersion' && key !== 'browser') {
+                                localStorage.setItem(key, backupData[key]);
+                                keysRestored++;
+                            }
+                        }
+                    });
+                }
+                // Handle structured format
+                else if (backupData.profile || backupData.dailyEntries) {
+                    // Restore profile
+                    if (backupData.profile) {
+                        localStorage.setItem('mm-health-profile', JSON.stringify(backupData.profile));
+                        keysRestored++;
+                    }
+
+                    // Restore daily entries
+                    if (backupData.dailyEntries) {
+                        Object.entries(backupData.dailyEntries).forEach(([date, entry]) => {
+                            localStorage.setItem(`mm-daily-entry-${date}`, JSON.stringify(entry));
+                            keysRestored++;
+                        });
+                    }
+
+                    // Restore compounds
+                    if (backupData.compounds) {
+                        localStorage.setItem('mm-compounds', JSON.stringify(backupData.compounds));
+                        keysRestored++;
+                    }
+
+                    // Restore other data if present
+                    const otherKeys = [
+                        'weeklyEntries', 'injectionTargets', 'foodTemplates',
+                        'nirvanaSessionTypes', 'nirvanaProgress', 'timezone',
+                        'macroTargets', 'weightAxisRange'
+                    ];
+
+                    otherKeys.forEach(key => {
+                        if (backupData[key]) {
+                            const storageKey = 'mm-' + key.replace(/([A-Z])/g, '-$1').toLowerCase();
+                            localStorage.setItem(storageKey, JSON.stringify(backupData[key]));
+                            keysRestored++;
+                        }
+                    });
+                }
+
+                // Show success message
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = `
+                    <div class="success">
+                        <h3>🎉 Data Restored Successfully!</h3>
+                        <p><strong>${keysRestored}</strong> items have been restored to localStorage.</p>
+                        <p style="font-size: 18px; margin-top: 20px;">
+                            ➡️ Now go to your app tab and <strong>refresh the page</strong> (Cmd+R / Ctrl+R)
+                        </p>
+                        <p>Your data should be back! 🎊</p>
+                    </div>
+
+                    <div class="section">
+                        <h3>What was restored:</h3>
+                        <ul style="line-height: 1.8;">
+                            <li>Profile data (BMR, height, weight)</li>
+                            <li>Daily entries with calories, exercises, injections</li>
+                            <li>Weekly objectives and reviews</li>
+                            <li>Compound list and injection targets</li>
+                            <li>Food templates</li>
+                            <li>Nirvana session data and progress</li>
+                            <li>Settings (timezone, macro targets, etc.)</li>
+                        </ul>
+                    </div>
+
+                    <div class="info">
+                        <h3>✅ Next Steps:</h3>
+                        <ol>
+                            <li>Refresh your app (http://localhost:3000)</li>
+                            <li>Check that your data is showing up correctly</li>
+                            <li>If everything looks good, you're all set!</li>
+                            <li>Consider backing up your data regularly</li>
+                        </ol>
+                    </div>
+                `;
+
+            } catch (error) {
+                alert('Error restoring data: ' + error.message);
+                console.error('Restore error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
