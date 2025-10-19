@@ -206,11 +206,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const profile = profileStorage.get();
       const dailyEntries = dailyEntryStorage.getAll();
 
-      dispatch({
-        type: 'LOAD_DATA',
-        payload: { profile, dailyEntries }
-      });
+      // If no profile exists (new user), create a default one
+      if (!profile) {
+        const defaultProfile: UserProfile = {
+          id: Math.random().toString(36).substr(2, 9),
+          bmr: 2000,
+          height: 0,
+          weight: 0,
+          gender: 'male',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        profileStorage.save(defaultProfile);
+
+        dispatch({
+          type: 'LOAD_DATA',
+          payload: { profile: defaultProfile, dailyEntries }
+        });
+      } else {
+        dispatch({
+          type: 'LOAD_DATA',
+          payload: { profile, dailyEntries }
+        });
+      }
     } catch (error) {
+      console.error('Error loading data:', error);
       dispatch({
         type: 'SET_ERROR',
         payload: error instanceof Error ? error.message : 'Failed to load data'

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AppProvider } from '@/lib/context';
+import { ClerkProvider } from '@clerk/nextjs';
+import { AppProvider } from '@/lib/context-supabase';
 import { LayoutWrapper } from '@/components/LayoutWrapper';
 import { ErrorBoundary, DevelopmentErrorDisplay } from '@/components/ErrorBoundary';
 
@@ -20,17 +21,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="bg-mm-dark text-mm-white" suppressHydrationWarning>
-        <ErrorBoundary>
-          <AppProvider>
-            <LayoutWrapper>
-              {children}
-            </LayoutWrapper>
-          </AppProvider>
-          <DevelopmentErrorDisplay />
-        </ErrorBoundary>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body className="bg-mm-dark text-mm-white" suppressHydrationWarning>
+          <ErrorBoundary>
+            <AppProvider>
+              <LayoutWrapper>
+                {children}
+              </LayoutWrapper>
+            </AppProvider>
+            <DevelopmentErrorDisplay />
+          </ErrorBoundary>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

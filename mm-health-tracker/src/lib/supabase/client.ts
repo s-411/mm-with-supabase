@@ -1,23 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './database.types'
 
-// Check if the environment variables are actually set to valid values
-const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Use fallback values if env vars are not set or are placeholder values
-const supabaseUrl = (envUrl && envUrl !== 'your_supabase_project_url' && envUrl.startsWith('http'))
-  ? envUrl
-  : 'https://dmuyymdfpciuqjrarezw.supabase.co'
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables')
+}
 
-const supabaseAnonKey = (envKey && envKey !== 'your_supabase_anon_key')
-  ? envKey
-  : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtdXl5bWRmcGNpdXFqcmFyZXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxNzc3MzAsImV4cCI6MjA3Mzc1MzczMH0.HEITmS97bQdejoy0Ghiz7I8I_vh2hFEo1gCo-BW-znY'
-
+// Base Supabase client (unauthenticated)
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
+    persistSession: false, // Clerk handles session persistence
+    autoRefreshToken: false,
   },
   realtime: {
     params: {
@@ -25,6 +20,34 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     },
   },
 })
+
+// Cache for authenticated clients
+let cachedClerkClient: { client: any; token: string } | null = null
+
+// Create authenticated Supabase client with Clerk token (singleton pattern)
+export const createClerkSupabaseClient = (clerkToken: string) => {
+  // Return cached client if token hasn't changed
+  if (cachedClerkClient && cachedClerkClient.token === clerkToken) {
+    return cachedClerkClient.client
+  }
+
+  // Create new client
+  const client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${clerkToken}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
+
+  // Cache it
+  cachedClerkClient = { client, token: clerkToken }
+  return client
+}
 
 // Auth helpers
 export const getCurrentUser = async () => {

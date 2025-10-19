@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useProfile } from '@/lib/context-supabase';
+import type { Database } from '@/lib/supabase/database.types';
 import { profileStorage, dataExport, compoundStorage, foodTemplateStorage, FoodTemplate, injectionTargetStorage, nirvanaSessionTypesStorage, timezoneStorage, winnersBibleStorage } from '@/lib/storage';
 import { UserProfile, DailyTrackerSettings, InjectionTarget, WinnersBibleImage } from '@/types';
 import {
@@ -23,9 +25,20 @@ function SettingsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const isFirstTime = searchParams.get('firstTime') === 'true';
-  
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  const { profile, updateProfile: updateSupabaseProfile, isLoading: profileLoading } = useProfile();
   const [isProfileComplete, setIsProfileComplete] = useState(false);
+
+  // Local state for profile form inputs
+  const [localProfile, setLocalProfile] = useState({
+    bmr: profile?.bmr || 0,
+    gender: profile?.gender || 'male',
+    height: profile?.height || null,
+    weight: profile?.weight || null,
+  });
+  const [profileChanged, setProfileChanged] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+
   const [compounds, setCompounds] = useState<string[]>([]);
   const [newCompound, setNewCompound] = useState('');
   const [showDeleteWarning, setShowDeleteWarning] = useState<string | null>(null);
@@ -58,6 +71,7 @@ function SettingsPageContent() {
     protein: '',
     fat: ''
   });
+  const [macroTargetsChanged, setMacroTargetsChanged] = useState(false);
   const [injectionTargets, setInjectionTargets] = useState<InjectionTarget[]>([]);
 
   // Timezone state
@@ -80,16 +94,28 @@ function SettingsPageContent() {
   const [winnersBibleImages, setWinnersBibleImages] = useState<WinnersBibleImage[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // Sync local state when profile loads from Supabase
   useEffect(() => {
-    const existingProfile = profileStorage.get();
-    if (existingProfile) {
-      setProfile(existingProfile);
+    if (profile) {
+      setLocalProfile({
+        bmr: profile.bmr || 0,
+        gender: profile.gender || 'male',
+        height: profile.height || null,
+        weight: profile.weight || null,
+      });
     }
-    
+  }, [profile]);
+
+  useEffect(() => {
     // Check if profile is complete
-    const profileComplete = profileStorage.isComplete();
+    const profileComplete = !!(
+      profile?.bmr && profile.bmr > 0 &&
+      profile?.height && profile.height > 0 &&
+      profile?.weight && profile.weight > 0 &&
+      profile?.gender
+    );
     setIsProfileComplete(profileComplete);
-    
+
     // If profile becomes complete and user came from first-time flow, redirect to daily tracker
     if (profileComplete && isFirstTime) {
       setTimeout(() => {
@@ -136,31 +162,26 @@ function SettingsPageContent() {
     // Load Winners Bible images from storage
     const storedImages = winnersBibleStorage.getImages();
     setWinnersBibleImages(storedImages);
-  }, [isFirstTime, router]);
+  }, [isFirstTime, router, profile]);
 
-  const updateProfile = (updates: Partial<UserProfile>) => {
-    if (profile) {
-      const updated = profileStorage.update(updates);
-      if (updated) setProfile(updated);
-    } else {
-      const newProfile = profileStorage.create({
-        bmr: updates.bmr || 2000,
-        height: updates.height || 175,
-        weight: updates.weight || 70,
-        gender: updates.gender || 'male'
-      });
-      setProfile(newProfile);
-    }
-    
-    // Check if profile is now complete
-    const profileComplete = profileStorage.isComplete();
-    setIsProfileComplete(profileComplete);
-    
-    // If profile becomes complete and user came from first-time flow, redirect to daily tracker
-    if (profileComplete && isFirstTime) {
-      setTimeout(() => {
-        router.replace('/daily');
-      }, 2000); // Give user time to see completion message
+  // Update local profile state and mark as changed
+  const updateLocalProfile = (updates: Partial<typeof localProfile>) => {
+    setLocalProfile(prev => ({ ...prev, ...updates }));
+    setProfileChanged(true);
+  };
+
+  // Save profile to Supabase
+  const saveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      await updateSupabaseProfile(localProfile);
+      setProfileChanged(false);
+      alert('Profile saved successfully!');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile. Please try again.');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -246,7 +267,13 @@ function SettingsPageContent() {
   const updateMacroTarget = (key: string, value: string) => {
     const updated = { ...macroTargets, [key]: value };
     setMacroTargets(updated);
-    localStorage.setItem('mm-macro-targets', JSON.stringify(updated));
+    setMacroTargetsChanged(true);
+  };
+
+  const saveMacroTargets = () => {
+    localStorage.setItem('mm-macro-targets', JSON.stringify(macroTargets));
+    setMacroTargetsChanged(false);
+    alert('Macro targets saved successfully!');
   };
 
   const addInjectionTarget = () => {
@@ -466,12 +493,12 @@ function SettingsPageContent() {
               </label>
               <input
                 type="number"
-                value={profile?.bmr || ''}
-                onChange={(e) => updateProfile({ bmr: parseInt(e.target.value) || 0 })}
+                value={localProfile.bmr || ''}
+                onChange={(e) => updateLocalProfile({ bmr: parseInt(e.target.value) || 0 })}
                 className="input-mm w-full"
               />
-              <a 
-                href="/bmr-calculator" 
+              <a
+                href="/bmr-calculator"
                 className="text-xs text-mm-blue hover:text-mm-blue/80 underline mt-1 inline-block"
               >
                 Click here to calculate your BMR
@@ -483,8 +510,8 @@ function SettingsPageContent() {
                 Gender <span className="text-red-500">*</span>
               </label>
               <select
-                value={profile?.gender || 'male'}
-                onChange={(e) => updateProfile({ gender: e.target.value as 'male' | 'female' | 'other' })}
+                value={localProfile.gender || ''}
+                onChange={(e) => updateLocalProfile({ gender: e.target.value })}
                 className="input-mm w-full"
               >
                 <option value="male">Male</option>
@@ -499,8 +526,8 @@ function SettingsPageContent() {
               </label>
               <input
                 type="number"
-                value={profile?.height || ''}
-                onChange={(e) => updateProfile({ height: parseInt(e.target.value) || 0 })}
+                value={localProfile.height || ''}
+                onChange={(e) => updateLocalProfile({ height: parseFloat(e.target.value) || null })}
                 className="input-mm w-full"
               />
             </div>
@@ -511,13 +538,32 @@ function SettingsPageContent() {
               </label>
               <input
                 type="number"
-                value={profile?.weight || ''}
-                onChange={(e) => updateProfile({ weight: parseInt(e.target.value) || 0 })}
+                value={localProfile.weight || ''}
+                onChange={(e) => updateLocalProfile({ weight: parseFloat(e.target.value) || null })}
                 className="input-mm w-full"
               />
               <p className="text-xs text-mm-gray mt-1">You can update this daily in the tracker</p>
             </div>
           </div>
+
+          {/* Save Button */}
+          {profileChanged && (
+            <div className="mt-6 p-4 bg-mm-blue/10 border border-mm-blue/30 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-mm-blue">Unsaved Changes</p>
+                  <p className="text-sm text-mm-gray">Your profile has been modified</p>
+                </div>
+                <button
+                  onClick={saveProfile}
+                  disabled={savingProfile}
+                  className="btn-mm py-2 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {savingProfile ? 'Saving...' : 'Save Profile'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Timezone Settings */}
@@ -625,13 +671,23 @@ function SettingsPageContent() {
             </div>
           </div>
 
-          <div className="mt-4 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-            <p className="text-sm text-orange-400 font-medium mb-2">Auto-Save Enabled</p>
-            <p className="text-xs text-mm-gray">
-              Your macro targets are automatically saved as you type - no need to click Save. 
-              These targets will appear on your Daily Tracker and Calories page to track progress.
-            </p>
-          </div>
+          {/* Save Button */}
+          {macroTargetsChanged && (
+            <div className="mt-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-orange-500">Unsaved Changes</p>
+                  <p className="text-sm text-mm-gray">Your macro targets have been modified</p>
+                </div>
+                <button
+                  onClick={saveMacroTargets}
+                  className="btn-mm py-2 px-4"
+                >
+                  Save Targets
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Injection Compounds */}
