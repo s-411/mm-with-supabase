@@ -59,9 +59,9 @@ export const dailyEntriesApi = {
       .select('*')
       .eq('user_id', userId)
       .eq('date', date)
-      .single()
+      .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') throw error
+    if (error) throw error
     return data
   },
 
@@ -303,9 +303,9 @@ export const nirvanaEntriesApi = {
       `)
       .eq('user_id', userId)
       .eq('date', date)
-      .single()
+      .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') throw error
+    if (error) throw error
     return data
   },
 
@@ -394,9 +394,9 @@ export const weeklyEntriesApi = {
       .select('*')
       .eq('user_id', userId)
       .eq('week_start', weekStart)
-      .single()
+      .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') throw error
+    if (error) throw error
     return data
   },
 

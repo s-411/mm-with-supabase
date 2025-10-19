@@ -20,13 +20,9 @@ export class WeeklyService {
       .select('*')
       .eq('user_id', this.userId)
       .eq('week_start', weekStart)
-      .single()
+      .maybeSingle()
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        // No entry found, return null
-        return null
-      }
       throw new Error(`Failed to fetch weekly entry: ${error.message}`)
     }
 

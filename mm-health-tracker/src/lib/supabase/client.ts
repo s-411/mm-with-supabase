@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -8,19 +8,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-// Supabase client with built-in auth
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true, // Enable session persistence
-    autoRefreshToken: true, // Automatically refresh tokens
-    detectSessionInUrl: true, // Detect session from URL (for email confirmations)
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
-})
+// Supabase client with SSR support (stores session in cookies)
+export const supabase = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
 
 // Real-time subscription helpers
 export const subscribeToTable = (

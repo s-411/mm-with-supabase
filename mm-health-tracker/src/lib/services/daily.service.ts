@@ -29,9 +29,9 @@ export class DailyService {
       .select('*')
       .eq('user_id', this.userId)
       .eq('date', date)
-      .single()
+      .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       throw new Error(`Failed to fetch daily entry: ${error.message}`)
     }
 
@@ -133,6 +133,26 @@ export class DailyService {
   }
 
   /**
+   * Get calorie entries for a date range
+   */
+  async getCalorieEntriesRange(startDate: string, endDate: string): Promise<CalorieEntry[]> {
+    const { data, error } = await this.supabase
+      .from('calorie_entries')
+      .select('*')
+      .eq('user_id', this.userId)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      throw new Error(`Failed to fetch calorie entries range: ${error.message}`)
+    }
+
+    return data || []
+  }
+
+  /**
    * Add calorie entry
    */
   async addCalorieEntry(
@@ -186,6 +206,26 @@ export class DailyService {
 
     if (error) {
       throw new Error(`Failed to fetch exercise entries: ${error.message}`)
+    }
+
+    return data || []
+  }
+
+  /**
+   * Get exercise entries for a date range
+   */
+  async getExerciseEntriesRange(startDate: string, endDate: string): Promise<ExerciseEntry[]> {
+    const { data, error } = await this.supabase
+      .from('exercise_entries')
+      .select('*')
+      .eq('user_id', this.userId)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      throw new Error(`Failed to fetch exercise entries range: ${error.message}`)
     }
 
     return data || []

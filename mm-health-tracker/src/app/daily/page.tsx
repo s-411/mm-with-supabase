@@ -389,7 +389,7 @@ export default function DailyTrackerPage() {
           </button>
           
           <div className="text-center min-w-[200px]">
-            <div className="text-3xl font-heading text-mm-white">
+            <div className="text-3xl font-heading text-mm-white" suppressHydrationWarning>
               {formatDateLong(new Date(currentDate + 'T12:00:00'))}
             </div>
             {isToday && (
