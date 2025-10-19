@@ -67,7 +67,23 @@ All tables use Row Level Security (RLS) with Clerk-based authentication. User da
 ## Production Configuration
 
 The app is deployed at **measuredmanaged.app** with:
-- Clerk authentication in production mode
+- Clerk authentication in production mode with JWT templates
 - Supabase database with full RLS protection
 - SSL certificates configured and active
 - Optimized database indexes for performance
+- Zero console errors and warnings
+
+### Setup Requirements
+
+**Critical**: Clerk JWT template must be configured for Supabase integration.
+See [CLERK-SUPABASE-SETUP.md](CLERK-SUPABASE-SETUP.md) for detailed instructions.
+
+### Recent Improvements
+
+- Fixed all Clerk v6 deprecation warnings
+- Removed deprecated redirect URL props
+- Cleaned up unused Supabase Auth code
+- Added proper autocomplete attributes to forms
+- Optimized client-side Supabase instance management
+
+Complete details in [ERROR-FIXES-SUMMARY.md](ERROR-FIXES-SUMMARY.md)
