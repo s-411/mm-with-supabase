@@ -1,8 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd mm-health-tracker && npm run build",
-  "devCommand": "cd mm-health-tracker && npm run dev",
-  "installCommand": "cd mm-health-tracker && npm install",
-  "framework": "nextjs",
-  "outputDirectory": "mm-health-tracker/.next"
+  "framework": "nextjs"
 }
