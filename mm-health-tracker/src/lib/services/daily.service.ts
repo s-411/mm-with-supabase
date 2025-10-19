@@ -88,7 +88,7 @@ export class DailyService {
    * Update weight for a specific date
    */
   async updateWeight(date: string, weight: number): Promise<DailyEntry> {
-    return this.upsert(date, { weight_kg: weight })
+    return this.upsert(date, { weight })
   }
 
   /**

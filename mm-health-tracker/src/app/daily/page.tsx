@@ -128,8 +128,8 @@ export default function DailyTrackerPage() {
 
   // Pre-populate weight input from Supabase entry
   useEffect(() => {
-    if (supabaseEntry?.weight_kg) {
-      setWeightInput(supabaseEntry.weight_kg.toString());
+    if (supabaseEntry?.weight) {
+      setWeightInput(supabaseEntry.weight.toString());
     } else {
       setWeightInput('');
     }
@@ -340,7 +340,7 @@ export default function DailyTrackerPage() {
     const completionStatus = {
       calories: supabaseCalories.length > 0,
       exercise: supabaseExercises.length > 0,
-      weight: supabaseEntry?.weight_kg !== null && supabaseEntry?.weight_kg !== undefined,
+      weight: supabaseEntry?.weight !== null && supabaseEntry?.weight !== undefined,
       deepWork: supabaseEntry?.deep_work_completed || false,
       mits: tomorrowMITs.length > 0,
       winnersBible: (dailyEntry?.winnersBibleMorning || false) || (dailyEntry?.winnersBibleNight || false),
@@ -792,7 +792,7 @@ export default function DailyTrackerPage() {
             onClick={() => setShowWeightForm(!showWeightForm)}
             className="btn-mm w-full py-2 text-sm mb-3"
           >
-            {supabaseEntry?.weight_kg ? 'Update Weight' : (
+            {supabaseEntry?.weight ? 'Update Weight' : (
               <>
                 <PlusIcon className="w-4 h-4 mr-2" />
                 Add Weight
@@ -800,10 +800,10 @@ export default function DailyTrackerPage() {
             )}
           </button>
 
-          {supabaseEntry?.weight_kg && (
+          {supabaseEntry?.weight && (
             <div className="text-center">
               <div className="text-2xl font-heading text-mm-white">
-                {supabaseEntry.weight_kg}kg
+                {supabaseEntry.weight}kg
               </div>
             </div>
           )}

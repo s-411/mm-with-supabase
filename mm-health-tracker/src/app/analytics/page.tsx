@@ -130,10 +130,10 @@ export default function AnalyticsPage() {
 
     // Weight data from Supabase (entries are already filtered by date range from hook)
     data.weightData = supabaseEntries
-      .filter(entry => entry.weight_kg !== null && entry.weight_kg !== undefined)
+      .filter(entry => entry.weight !== null && entry.weight !== undefined)
       .map(entry => ({
         date: entry.date,
-        weight: entry.weight_kg!,
+        weight: entry.weight!,
         label: formatDate(new Date(entry.date + 'T12:00:00'))
       }))
       .sort((a, b) => a.date.localeCompare(b.date)); // Sort chronologically
