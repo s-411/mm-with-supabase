@@ -405,18 +405,18 @@ export default function InjectionsPage() {
                           weekAgo.setDate(weekAgo.getDate() - 7);
                           
                           const recentInjections = allInjections
-                            .filter(inj => 
-                              inj.compound === compound && 
-                              new Date(inj.timestamp) >= weekAgo
+                            .filter(inj =>
+                              inj.compound_name === compound &&
+                              new Date(`${inj.date}T${inj.time_of_day || '00:00'}:00`) >= weekAgo
                             )
-                            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+                            .sort((a, b) => new Date(`${a.date}T${a.time_of_day || '00:00'}:00`).getTime() - new Date(`${b.date}T${b.time_of_day || '00:00'}:00`).getTime());
                           
                           if (recentInjections.length === 0) {
                             return <span className="text-mm-gray">None</span>;
                           }
                           
                           return recentInjections.map(inj => {
-                            const date = new Date(inj.timestamp);
+                            const date = new Date(`${inj.date}T${inj.time_of_day || '00:00'}:00`);
                             const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
                             const dayNum = date.getDate();
                             const suffix = dayNum === 1 || dayNum === 21 || dayNum === 31 ? 'st' :
@@ -585,7 +585,7 @@ export default function InjectionsPage() {
             {allInjections.filter(inj => {
               const weekAgo = new Date();
               weekAgo.setDate(weekAgo.getDate() - 7);
-              return new Date(inj.timestamp) >= weekAgo;
+              return new Date(`${inj.date}T${inj.time_of_day || '00:00'}:00`) >= weekAgo;
             }).length}
           </p>
           <p className="text-xs text-mm-gray">Injections</p>
@@ -599,13 +599,13 @@ export default function InjectionsPage() {
             </div>
           </div>
           <p className="text-lg font-heading mb-1">
-            {allInjections.length > 0 
-              ? formatDate(allInjections[0].timestamp)
+            {allInjections.length > 0
+              ? formatDate(new Date(`${allInjections[0].date}T${allInjections[0].time_of_day || '00:00'}:00`))
               : 'None'
             }
           </p>
           <p className="text-xs text-mm-gray">
-            {allInjections.length > 0 && allInjections[0].compound}
+            {allInjections.length > 0 && allInjections[0].compound_name}
           </p>
         </div>
       </div>
