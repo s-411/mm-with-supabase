@@ -2,11 +2,27 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { createClerkSupabaseClient } from '@/lib/supabase/client';
 import { SettingsService } from '@/lib/services/settings.service';
+import { ProfileService } from '@/lib/services/profile.service';
 import { Database } from '@/lib/supabase/database.types';
 
 type Compound = Database['public']['Tables']['compounds']['Row'];
 type FoodTemplate = Database['public']['Tables']['food_templates']['Row'];
 type NirvanaSessionType = Database['public']['Tables']['nirvana_session_types']['Row'];
+
+async function getSettingsService(getToken: any, userId: string): Promise<SettingsService> {
+  if (!userId) throw new Error('Not authenticated');
+
+  const token = await getToken({ template: 'supabase' });
+  if (!token) throw new Error('No auth token');
+
+  const supabase = createClerkSupabaseClient(token);
+  const profileService = new ProfileService(supabase);
+  const profile = await profileService.get(userId);
+
+  if (!profile) throw new Error('Profile not found');
+
+  return new SettingsService(supabase, profile.id);
+}
 
 export function useCompounds() {
   const { getToken, userId } = useAuth();
@@ -23,12 +39,7 @@ export function useCompounds() {
 
     try {
       setLoading(true);
-      const token = await getToken({ template: 'supabase' });
-      if (!token) throw new Error('No auth token');
-
-      const supabase = createClerkSupabaseClient(token);
-      const settingsService = new SettingsService(supabase, userId);
-
+      const settingsService = await getSettingsService(getToken, userId);
       const data = await settingsService.getCompounds();
       setCompounds(data);
       setError(null);
@@ -45,28 +56,14 @@ export function useCompounds() {
   }, [loadCompounds]);
 
   const addCompound = useCallback(async (name: string) => {
-    if (!userId) throw new Error('Not authenticated');
-
-    const token = await getToken({ template: 'supabase' });
-    if (!token) throw new Error('No auth token');
-
-    const supabase = createClerkSupabaseClient(token);
-    const settingsService = new SettingsService(supabase, userId);
-
+    const settingsService = await getSettingsService(getToken, userId);
     const newCompound = await settingsService.addCompound(name);
     setCompounds(prev => [...prev, newCompound]);
     return newCompound;
   }, [getToken, userId]);
 
   const removeCompound = useCallback(async (compoundId: string) => {
-    if (!userId) throw new Error('Not authenticated');
-
-    const token = await getToken({ template: 'supabase' });
-    if (!token) throw new Error('No auth token');
-
-    const supabase = createClerkSupabaseClient(token);
-    const settingsService = new SettingsService(supabase, userId);
-
+    const settingsService = await getSettingsService(getToken, userId);
     await settingsService.removeCompound(compoundId);
     setCompounds(prev => prev.filter(c => c.id !== compoundId));
   }, [getToken, userId]);
@@ -96,12 +93,7 @@ export function useFoodTemplates() {
 
     try {
       setLoading(true);
-      const token = await getToken({ template: 'supabase' });
-      if (!token) throw new Error('No auth token');
-
-      const supabase = createClerkSupabaseClient(token);
-      const settingsService = new SettingsService(supabase, userId);
-
+      const settingsService = await getSettingsService(getToken, userId);
       const data = await settingsService.getFoodTemplates();
       setTemplates(data);
       setError(null);
@@ -118,28 +110,14 @@ export function useFoodTemplates() {
   }, [loadTemplates]);
 
   const addTemplate = useCallback(async (template: { name: string; calories: number; carbs: number; protein: number; fat: number }) => {
-    if (!userId) throw new Error('Not authenticated');
-
-    const token = await getToken({ template: 'supabase' });
-    if (!token) throw new Error('No auth token');
-
-    const supabase = createClerkSupabaseClient(token);
-    const settingsService = new SettingsService(supabase, userId);
-
+    const settingsService = await getSettingsService(getToken, userId);
     const newTemplate = await settingsService.addFoodTemplate(template);
     setTemplates(prev => [newTemplate, ...prev]);
     return newTemplate;
   }, [getToken, userId]);
 
   const removeTemplate = useCallback(async (templateId: string) => {
-    if (!userId) throw new Error('Not authenticated');
-
-    const token = await getToken({ template: 'supabase' });
-    if (!token) throw new Error('No auth token');
-
-    const supabase = createClerkSupabaseClient(token);
-    const settingsService = new SettingsService(supabase, userId);
-
+    const settingsService = await getSettingsService(getToken, userId);
     await settingsService.removeFoodTemplate(templateId);
     setTemplates(prev => prev.filter(t => t.id !== templateId));
   }, [getToken, userId]);
@@ -169,12 +147,7 @@ export function useNirvanaSessionTypes() {
 
     try {
       setLoading(true);
-      const token = await getToken({ template: 'supabase' });
-      if (!token) throw new Error('No auth token');
-
-      const supabase = createClerkSupabaseClient(token);
-      const settingsService = new SettingsService(supabase, userId);
-
+      const settingsService = await getSettingsService(getToken, userId);
       const data = await settingsService.getNirvanaSessionTypes();
       setSessionTypes(data);
       setError(null);
@@ -191,28 +164,14 @@ export function useNirvanaSessionTypes() {
   }, [loadSessionTypes]);
 
   const addSessionType = useCallback(async (name: string) => {
-    if (!userId) throw new Error('Not authenticated');
-
-    const token = await getToken({ template: 'supabase' });
-    if (!token) throw new Error('No auth token');
-
-    const supabase = createClerkSupabaseClient(token);
-    const settingsService = new SettingsService(supabase, userId);
-
+    const settingsService = await getSettingsService(getToken, userId);
     const newType = await settingsService.addNirvanaSessionType(name);
     setSessionTypes(prev => [...prev, newType]);
     return newType;
   }, [getToken, userId]);
 
   const removeSessionType = useCallback(async (typeId: string) => {
-    if (!userId) throw new Error('Not authenticated');
-
-    const token = await getToken({ template: 'supabase' });
-    if (!token) throw new Error('No auth token');
-
-    const supabase = createClerkSupabaseClient(token);
-    const settingsService = new SettingsService(supabase, userId);
-
+    const settingsService = await getSettingsService(getToken, userId);
     await settingsService.removeNirvanaSessionType(typeId);
     setSessionTypes(prev => prev.filter(t => t.id !== typeId));
   }, [getToken, userId]);
@@ -241,12 +200,7 @@ export function useMacroTargets() {
 
     try {
       setLoading(true);
-      const token = await getToken({ template: 'supabase' });
-      if (!token) throw new Error('No auth token');
-
-      const supabase = createClerkSupabaseClient(token);
-      const settingsService = new SettingsService(supabase, userId);
-
+      const settingsService = await getSettingsService(getToken, userId);
       const data = await settingsService.getMacroTargets();
       setMacroTargets(data);
     } catch (err) {
@@ -261,14 +215,7 @@ export function useMacroTargets() {
   }, [loadMacroTargets]);
 
   const updateMacroTargets = useCallback(async (targets: { calories: string; carbs: string; protein: string; fat: string }) => {
-    if (!userId) throw new Error('Not authenticated');
-
-    const token = await getToken({ template: 'supabase' });
-    if (!token) throw new Error('No auth token');
-
-    const supabase = createClerkSupabaseClient(token);
-    const settingsService = new SettingsService(supabase, userId);
-
+    const settingsService = await getSettingsService(getToken, userId);
     await settingsService.updateMacroTargets(targets);
     setMacroTargets(targets);
   }, [getToken, userId]);
@@ -295,12 +242,7 @@ export function useTrackerSettings() {
 
     try {
       setLoading(true);
-      const token = await getToken({ template: 'supabase' });
-      if (!token) throw new Error('No auth token');
-
-      const supabase = createClerkSupabaseClient(token);
-      const settingsService = new SettingsService(supabase, userId);
-
+      const settingsService = await getSettingsService(getToken, userId);
       const data = await settingsService.getTrackerSettings();
       setTrackerSettings(data);
     } catch (err) {
@@ -315,14 +257,7 @@ export function useTrackerSettings() {
   }, [loadTrackerSettings]);
 
   const updateTrackerSettings = useCallback(async (settings: any) => {
-    if (!userId) throw new Error('Not authenticated');
-
-    const token = await getToken({ template: 'supabase' });
-    if (!token) throw new Error('No auth token');
-
-    const supabase = createClerkSupabaseClient(token);
-    const settingsService = new SettingsService(supabase, userId);
-
+    const settingsService = await getSettingsService(getToken, userId);
     await settingsService.updateTrackerSettings(settings);
     setTrackerSettings(settings);
   }, [getToken, userId]);
