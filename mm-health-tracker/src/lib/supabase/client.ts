@@ -49,35 +49,9 @@ export const createClerkSupabaseClient = (clerkToken: string) => {
   return client
 }
 
-// Auth helpers
-export const getCurrentUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error) throw error
-  return user
-}
-
-export const signIn = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
-  if (error) throw error
-  return data
-}
-
-export const signUp = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  })
-  if (error) throw error
-  return data
-}
-
-export const signOut = async () => {
-  const { error } = await supabase.auth.signOut()
-  if (error) throw error
-}
+// Note: Authentication is handled by Clerk, not Supabase Auth
+// The createClerkSupabaseClient function above creates an authenticated
+// Supabase client using the Clerk JWT token
 
 // Real-time subscription helpers
 export const subscribeToTable = (
