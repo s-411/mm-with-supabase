@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useProfile } from '@/lib/context-supabase';
+import { useCompounds, useFoodTemplates, useNirvanaSessionTypes } from '@/lib/hooks/useSettings';
 import type { Database } from '@/lib/supabase/database.types';
 import { profileStorage, dataExport, compoundStorage, foodTemplateStorage, FoodTemplate, injectionTargetStorage, nirvanaSessionTypesStorage, timezoneStorage, winnersBibleStorage } from '@/lib/storage';
 import { UserProfile, DailyTrackerSettings, InjectionTarget, WinnersBibleImage } from '@/types';
@@ -39,11 +40,12 @@ function SettingsPageContent() {
   const [profileChanged, setProfileChanged] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
-  const [compounds, setCompounds] = useState<string[]>([]);
+  // Supabase hooks for settings
+  const { compounds, addCompound: addCompoundToSupabase, removeCompound: removeCompoundFromSupabase } = useCompounds();
+
   const [newCompound, setNewCompound] = useState('');
   const [showDeleteWarning, setShowDeleteWarning] = useState<string | null>(null);
   const [showDataClearWarning, setShowDataClearWarning] = useState(false);
-  const [compoundsChanged, setCompoundsChanged] = useState(false);
   const [foodTemplates, setFoodTemplates] = useState<FoodTemplate[]>([]);
   const [newTemplate, setNewTemplate] = useState({
     name: '',
@@ -123,10 +125,6 @@ function SettingsPageContent() {
       }, 2000); // Give user time to see completion message
     }
 
-    // Load compounds from storage
-    const storedCompounds = compoundStorage.get();
-    setCompounds(storedCompounds);
-
     // Load food templates from storage
     const storedTemplates = foodTemplateStorage.get();
     setFoodTemplates(storedTemplates);
@@ -185,38 +183,37 @@ function SettingsPageContent() {
     }
   };
 
-  const addCompound = () => {
-    if (newCompound.trim() && !compounds.includes(newCompound.trim())) {
-      const updated = [...compounds, newCompound.trim()];
-      setCompounds(updated);
-      setNewCompound('');
-      setCompoundsChanged(true);
+  const addCompound = async () => {
+    if (newCompound.trim() && !compounds.some(c => c.name === newCompound.trim())) {
+      try {
+        await addCompoundToSupabase(newCompound.trim());
+        setNewCompound('');
+      } catch (error) {
+        console.error('Error adding compound:', error);
+        alert('Failed to add compound. Please try again.');
+      }
     }
   };
 
-  const removeCompound = (compound: string) => {
-    // Check if compound has data
+  const removeCompound = (compoundId: string, compoundName: string) => {
+    // Check if compound has data in localStorage (legacy)
     const compoundsWithData = compoundStorage.getCompoundsWithData();
-    
-    if (compoundsWithData.has(compound)) {
-      setShowDeleteWarning(compound);
+
+    if (compoundsWithData.has(compoundName)) {
+      setShowDeleteWarning(compoundId);
     } else {
-      const updated = compounds.filter(c => c !== compound);
-      setCompounds(updated);
-      setCompoundsChanged(true);
+      confirmDeleteCompound(compoundId);
     }
   };
 
-  const confirmDeleteCompound = (compound: string) => {
-    const updated = compounds.filter(c => c !== compound);
-    setCompounds(updated);
-    setShowDeleteWarning(null);
-    setCompoundsChanged(true);
-  };
-
-  const saveCompounds = () => {
-    compoundStorage.save(compounds);
-    setCompoundsChanged(false);
+  const confirmDeleteCompound = async (compoundId: string) => {
+    try {
+      await removeCompoundFromSupabase(compoundId);
+      setShowDeleteWarning(null);
+    } catch (error) {
+      console.error('Error removing compound:', error);
+      alert('Failed to remove compound. Please try again.');
+    }
   };
 
   const addTemplate = () => {
@@ -707,10 +704,10 @@ function SettingsPageContent() {
             <h3 className="text-sm font-semibold text-mm-gray mb-3">Current Compounds</h3>
             <div className="flex flex-wrap gap-2">
               {compounds.map((compound) => (
-                <div key={compound} className="flex items-center bg-mm-dark2 rounded-full px-4 py-2 border border-mm-gray/20">
-                  <span className="text-sm mr-2">{compound}</span>
+                <div key={compound.id} className="flex items-center bg-mm-dark2 rounded-full px-4 py-2 border border-mm-gray/20">
+                  <span className="text-sm mr-2">{compound.name}</span>
                   <button
-                    onClick={() => removeCompound(compound)}
+                    onClick={() => removeCompound(compound.id, compound.name)}
                     className="p-1 hover:bg-red-500/20 rounded-full transition-colors"
                     title="Remove compound"
                   >
@@ -735,7 +732,7 @@ function SettingsPageContent() {
               />
               <button
                 onClick={addCompound}
-                disabled={!newCompound.trim() || compounds.includes(newCompound.trim())}
+                disabled={!newCompound.trim() || compounds.some(c => c.name === newCompound.trim())}
                 className="btn-mm py-2 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <PlusIcon className="w-4 h-4 mr-2" />
@@ -747,23 +744,6 @@ function SettingsPageContent() {
             </p>
           </div>
 
-          {/* Save Button */}
-          {compoundsChanged && (
-            <div className="mt-6 p-4 bg-mm-blue/10 border border-mm-blue/30 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-mm-blue">Unsaved Changes</p>
-                  <p className="text-sm text-mm-gray">Your compound list has been modified</p>
-                </div>
-                <button
-                  onClick={saveCompounds}
-                  className="btn-mm py-2 px-4"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Injection Targets */}
@@ -866,7 +846,7 @@ function SettingsPageContent() {
                     >
                       <option value="">Select compound</option>
                       {compounds.map((compound) => (
-                        <option key={compound} value={compound}>{compound}</option>
+                        <option key={compound.id} value={compound.name}>{compound.name}</option>
                       ))}
                     </select>
                   </div>
