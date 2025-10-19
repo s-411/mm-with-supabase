@@ -290,17 +290,17 @@ export default function NirvanaPage() {
             <div className="space-y-2">
               {sessionTypes.map((type) => (
                 <button
-                  key={type}
-                  onClick={() => addSession(type)}
+                  key={type.id}
+                  onClick={() => addSession(type.name)}
                   className="w-full text-left px-4 py-3 bg-mm-dark2 hover:bg-mm-dark2/80 border border-mm-gray/20 hover:border-mm-blue/30 rounded-lg transition-all group"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-mm-white group-hover:text-mm-blue transition-colors">
-                      {type}
+                      {type.name}
                     </span>
-                    {sessionCounts[type] && (
+                    {sessionCounts[type.name] && (
                       <span className="text-xs text-mm-gray bg-mm-blue/10 px-2 py-1 rounded-full">
-                        {sessionCounts[type]}x today
+                        {sessionCounts[type.name]}x today
                       </span>
                     )}
                   </div>
