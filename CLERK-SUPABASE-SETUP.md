@@ -20,14 +20,21 @@ For Clerk to work with Supabase, you **MUST** configure a custom JWT template in
    - **Token Lifetime**: 3600 seconds (1 hour)
 
 4. **Add these Claims**:
+
+**IMPORTANT**: Don't copy-paste this as JSON. In Clerk's UI, add each claim individually:
+
+| Claim Name | Value | Notes |
+|------------|-------|-------|
+| `iss` | `https://{{app_domain}}` | Issuer (auto-filled by Clerk) |
+| `sub` | `{{user.id}}` | Subject - the user's Clerk ID |
+| `aud` | `authenticated` | Audience (literal string) |
+| `exp` | `{{current_timestamp + (60 * 60)}}` | Expiration (1 hour from now) |
+| `role` | `authenticated` | Supabase role (literal string) |
+| `email` | `{{user.primary_email_address}}` | User's email |
+
+**For nested claims** (app_metadata and user_metadata), use the JSON editor in Clerk:
 ```json
 {
-  "iss": "https://{{app_domain}}",
-  "sub": "{{user.id}}",
-  "aud": "authenticated",
-  "exp": {{current_timestamp + (60 * 60)}},
-  "role": "authenticated",
-  "email": "{{user.primary_email_address}}",
   "app_metadata": {
     "provider": "clerk",
     "providers": ["clerk"]
@@ -35,6 +42,8 @@ For Clerk to work with Supabase, you **MUST** configure a custom JWT template in
   "user_metadata": {}
 }
 ```
+
+**OR** if Clerk has a "Supabase" template option, just select that and it will auto-configure everything.
 
 5. **Save the Template**
 
