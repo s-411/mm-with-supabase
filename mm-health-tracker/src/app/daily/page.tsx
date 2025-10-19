@@ -185,16 +185,8 @@ export default function DailyTrackerPage() {
         // Update weight in Supabase
         await updateWeightSupabase(weight);
 
-        // Also update localStorage daily entry for backwards compatibility
-        const updatedEntry = dailyEntryStorage.updateWeight(currentDate, weight);
-        setDailyEntry(updatedEntry);
-
-        // Also update the profile weight if this is today's weight
-        const todayDate = timezoneStorage.getCurrentDate();
-        if (currentDate === todayDate && profile) {
-          const updatedProfile = profileStorage.update({ weight });
-          setProfile(updatedProfile); // Update local profile state
-        }
+        // Reload data to reflect the change
+        await reloadDaily();
 
         setShowWeightForm(false);
       } catch (error) {
@@ -209,9 +201,8 @@ export default function DailyTrackerPage() {
       // Toggle deep work in Supabase
       await toggleDeepWorkSupabase();
 
-      // Also update localStorage for backwards compatibility
-      const updatedEntry = dailyEntryStorage.toggleDeepWork(currentDate);
-      setDailyEntry(updatedEntry);
+      // Reload data to reflect the change
+      await reloadDaily();
     } catch (error) {
       console.error('Error toggling deep work:', error);
       alert('Failed to toggle deep work. Please try again.');
@@ -229,19 +220,6 @@ export default function DailyTrackerPage() {
         // Add MIT to Supabase
         await addMITSupabase(mitInput.trim(), tomorrowMITs.length);
 
-        // Also update localStorage for backwards compatibility
-        const tomorrow = new Date(currentDate);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowDateString = tomorrow.toISOString().split('T')[0];
-        const newMIT: MITEntry = {
-          id: generateId(),
-          task: mitInput.trim(),
-          completed: false,
-          order: tomorrowMITs.length
-        };
-        const updatedMITs = [...tomorrowMITs, newMIT];
-        dailyEntryStorage.updateMITs(tomorrowDateString, updatedMITs);
-
         setMitInput('');
       } catch (error) {
         console.error('Error adding MIT:', error);
@@ -254,13 +232,6 @@ export default function DailyTrackerPage() {
     try {
       // Delete MIT from Supabase
       await deleteMITSupabase(mitId);
-
-      // Also update localStorage for backwards compatibility
-      const tomorrow = new Date(currentDate);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowDateString = tomorrow.toISOString().split('T')[0];
-      const updatedMITs = tomorrowMITs.filter(mit => mit.id !== mitId);
-      dailyEntryStorage.updateMITs(tomorrowDateString, updatedMITs);
     } catch (error) {
       console.error('Error removing MIT:', error);
       alert('Failed to remove MIT. Please try again.');
@@ -271,12 +242,6 @@ export default function DailyTrackerPage() {
     try {
       // Toggle MIT in Supabase
       await toggleTodayMITSupabase(mitId);
-
-      // Also update localStorage for backwards compatibility
-      const updatedMITs = todayMITs.map(mit =>
-        mit.id === mitId ? { ...mit, completed: !mit.completed } : mit
-      );
-      dailyEntryStorage.updateMITs(currentDate, updatedMITs);
     } catch (error) {
       console.error('Error toggling MIT:', error);
       alert('Failed to toggle MIT. Please try again.');
@@ -298,13 +263,9 @@ export default function DailyTrackerPage() {
       // Save to Supabase
       await updateObjectivesSupabase(objectives, whyInput.trim());
 
-      // Also update localStorage for backwards compatibility
-      const updatedEntry = weeklyEntryStorage.createOrUpdate(weekStartDate, {
-        objectives,
-        whyImportant: whyInput.trim()
-      });
+      // Reload weekly data to reflect the change
+      await reloadWeekly();
 
-      setWeeklyEntry(updatedEntry);
       setShowWeeklyForm(false);
     } catch (error) {
       console.error('Error saving weekly objectives:', error);
@@ -323,11 +284,8 @@ export default function DailyTrackerPage() {
       // Toggle in Supabase
       await toggleObjectiveSupabase(objectiveId);
 
-      // Also update localStorage for backwards compatibility
-      if (weeklyEntry) {
-        const updatedEntry = weeklyEntryStorage.toggleObjectiveCompletion(weekStartDate, objectiveId);
-        setWeeklyEntry(updatedEntry);
-      }
+      // Reload weekly data to reflect the change
+      await reloadWeekly();
     } catch (error) {
       console.error('Error toggling objective:', error);
       alert('Failed to toggle objective. Please try again.');
@@ -339,11 +297,8 @@ export default function DailyTrackerPage() {
       // Save to Supabase
       await updateFridayReviewSupabase(reviewInput.trim());
 
-      // Also update localStorage for backwards compatibility
-      if (weeklyEntry) {
-        const updatedEntry = weeklyEntryStorage.updateFridayReview(weekStartDate, reviewInput.trim());
-        setWeeklyEntry(updatedEntry);
-      }
+      // Reload weekly data to reflect the change
+      await reloadWeekly();
 
       setShowReviewForm(false); // Close the form after saving
     } catch (error) {

@@ -190,14 +190,8 @@ function SettingsPageContent() {
   };
 
   const removeCompound = (compoundId: string, compoundName: string) => {
-    // Check if compound has data in localStorage (legacy)
-    const compoundsWithData = compoundStorage.getCompoundsWithData();
-
-    if (compoundsWithData.has(compoundName)) {
-      setShowDeleteWarning(compoundId);
-    } else {
-      confirmDeleteCompound(compoundId);
-    }
+    // Direct delete - no localStorage check needed
+    confirmDeleteCompound(compoundId);
   };
 
   const confirmDeleteCompound = async (compoundId: string) => {
@@ -351,37 +345,17 @@ function SettingsPageContent() {
   };
 
   const exportData = () => {
-    const data = dataExport.exportToJSON();
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `mm-health-data-${timezoneStorage.getCurrentDate()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // TODO: Implement Supabase data export
+    // This would require fetching all user data from Supabase and formatting it
+    alert('Data Export is temporarily disabled during the Supabase migration. This feature will be re-enabled soon with enhanced cloud backup capabilities.');
   };
 
   const clearAllData = () => {
-    if (typeof window !== 'undefined') {
-      // Clear all localStorage data
-      const keys = Object.keys(localStorage).filter(key => key.startsWith('mm-'));
-      keys.forEach(key => localStorage.removeItem(key));
-      
-      // Reset state
-      setProfile(null);
-      const defaultCompounds = ['Ipamorellin', 'Retatrutide', 'Testosterone'];
-      setCompounds(defaultCompounds);
-      compoundStorage.save(defaultCompounds);
-      setFoodTemplates([]);
-      setShowDataClearWarning(false);
-      setCompoundsChanged(false);
-      setTemplatesChanged(false);
-      
-      // Reload page to reset all state
-      window.location.reload();
-    }
+    // TODO: Implement Supabase data deletion
+    // This would require creating a comprehensive API endpoint to delete all user data
+    // For now, we'll show an alert
+    alert('Clear All Data is temporarily disabled during the Supabase migration. Please contact support if you need to delete your data.');
+    setShowDataClearWarning(false);
   };
 
   // Winners Bible functions
@@ -1369,62 +1343,13 @@ function SettingsPageContent() {
                 <p className="font-medium">Import Data</p>
                 <p className="text-sm text-mm-gray">Restore data from a JSON backup file</p>
               </div>
-              <label className="btn-mm py-2 px-4 cursor-pointer">
-                <input
-                  type="file"
-                  accept=".json"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        try {
-                          const content = JSON.parse(event.target?.result as string);
-                          let keysRestored = 0;
-
-                          // Handle raw localStorage format
-                          if (content['mm-health-profile'] !== undefined) {
-                            Object.keys(content).forEach(key => {
-                              if (key.startsWith('mm-') && key !== 'exportDate' && key !== 'exportVersion' && key !== 'browser') {
-                                localStorage.setItem(key, content[key]);
-                                keysRestored++;
-                              }
-                            });
-                          }
-                          // Handle structured format
-                          else if (content.profile || content.dailyEntries) {
-                            if (content.profile) {
-                              localStorage.setItem('mm-health-profile', JSON.stringify(content.profile));
-                              keysRestored++;
-                            }
-                            if (content.dailyEntries) {
-                              Object.entries(content.dailyEntries).forEach(([date, entry]) => {
-                                localStorage.setItem(`mm-daily-entry-${date}`, JSON.stringify(entry));
-                                keysRestored++;
-                              });
-                            }
-                            if (content.compounds) {
-                              localStorage.setItem('mm-compounds', JSON.stringify(content.compounds));
-                              keysRestored++;
-                            }
-                          }
-
-                          alert(`Success! Restored ${keysRestored} items. Refreshing page...`);
-                          window.location.reload();
-                        } catch (error) {
-                          alert('Error importing data: ' + (error as Error).message);
-                        }
-                      };
-                      reader.readAsText(file);
-                    }
-                    // Reset the input
-                    e.target.value = '';
-                  }}
-                />
+              <button
+                onClick={() => alert('Data Import is temporarily disabled during the Supabase migration. This feature will be re-enabled soon with enhanced cloud restore capabilities.')}
+                className="btn-mm py-2 px-4 cursor-pointer"
+              >
                 <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
                 Import
-              </label>
+              </button>
             </div>
 
             <div className="flex items-center justify-between p-4 bg-red-500/10 border border-red-500/20 rounded-lg">

@@ -1,4 +1,18 @@
 // MM Health Tracker - localStorage Storage Layer
+// ⚠️  DEPRECATED: This file is legacy code from pre-Supabase migration
+// All functionality has been migrated to Supabase services and hooks
+// This file is kept for reference only and should not be used in new code
+//
+// Migration Status: COMPLETE ✅
+// - Profile data → ProfileService + useProfile hook
+// - Daily entries → DailyService + useDaily hooks
+// - Settings → SettingsService + useSettings hooks
+// - Injections → InjectionService + useInjections hooks
+// - MITs → DailyService (mits table) + useMITs hook
+// - Weekly planning → WeeklyService + useWeekly hooks
+// - Nirvana → NirvanaService + useNirvana hooks
+// - Winners Bible → WinnersBibleService + useWinnersBible hooks
+//
 // Based on roadmap specifications
 
 import { UserProfile, DailyEntry, CalorieEntry, ExerciseEntry, InjectionEntry, InjectionTarget, MITEntry, WeeklyEntry, WeeklyObjective, NirvanaSession, NirvanaEntry, NirvanaMilestone, PersonalRecord, NirvanaProgress, SessionTypeMapping, BodyPart, BodyPartUsage, SessionCorrelation, SessionInsight, CorrelationAnalysis, WinnersBibleImage, WinnersBibleEntry } from '@/types';

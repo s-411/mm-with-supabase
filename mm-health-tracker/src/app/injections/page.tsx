@@ -105,25 +105,6 @@ export default function InjectionsPage() {
         notes: injectionInput.notes || null,
       });
 
-      // Also update localStorage for backwards compatibility
-      const newInjection: InjectionEntry = {
-        id: crypto.randomUUID(),
-        compound: injectionInput.compound,
-        dosage: parseFloat(injectionInput.dosage),
-        unit: injectionInput.unit,
-        notes: injectionInput.notes || undefined,
-        timestamp: new Date(`${injectionInput.date}T${injectionInput.time}:00`)
-      };
-
-      const existingEntry = dailyEntryStorage.getByDate(injectionInput.date);
-      const updatedInjections = existingEntry
-        ? [...existingEntry.injections, newInjection]
-        : [newInjection];
-
-      dailyEntryStorage.createOrUpdate(injectionInput.date, {
-        injections: updatedInjections
-      });
-
       // Reset form
       setInjectionInput({
         compound: compounds.length > 0 ? compounds[0].name : '',
@@ -143,18 +124,6 @@ export default function InjectionsPage() {
     try {
       // Delete from Supabase
       await deleteInjectionSupabase(injectionId);
-
-      // Also update localStorage for backwards compatibility
-      const injection = allInjections.find(inj => inj.id === injectionId);
-      if (injection) {
-        const injectionDate = injection.date;
-        const dailyEntry = dailyEntryStorage.getByDate(injectionDate);
-
-        if (dailyEntry) {
-          const updatedInjections = dailyEntry.injections.filter(inj => inj.id !== injectionId);
-          dailyEntryStorage.createOrUpdate(injectionDate, { injections: updatedInjections });
-        }
-      }
     } catch (error) {
       console.error('Error removing injection:', error);
       alert('Failed to remove injection. Please try again.');
