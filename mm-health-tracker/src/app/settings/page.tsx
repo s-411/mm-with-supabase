@@ -6,8 +6,9 @@ import { useClerk } from '@clerk/nextjs';
 import { useProfile } from '@/lib/context-supabase';
 import { useCompounds, useFoodTemplates, useNirvanaSessionTypes, useMacroTargets, useTrackerSettings } from '@/lib/hooks/useSettings';
 import type { Database } from '@/lib/supabase/database.types';
-import { profileStorage, dataExport, compoundStorage, foodTemplateStorage, FoodTemplate, injectionTargetStorage, nirvanaSessionTypesStorage, timezoneStorage, winnersBibleStorage } from '@/lib/storage';
-import { UserProfile, DailyTrackerSettings, InjectionTarget, WinnersBibleImage } from '@/types';
+import { profileStorage, dataExport, compoundStorage, foodTemplateStorage, FoodTemplate, injectionTargetStorage, nirvanaSessionTypesStorage, timezoneStorage } from '@/lib/storage';
+import { useWinnersBibleImages } from '@/lib/hooks/useWinnersBible';
+import { UserProfile, DailyTrackerSettings, InjectionTarget } from '@/types';
 import {
   UserIcon,
   BeakerIcon,
@@ -49,6 +50,7 @@ function SettingsPageContent() {
   const { sessionTypes: nirvanaSessionTypes, addSessionType: addSessionTypeToSupabase, removeSessionType: removeSessionTypeFromSupabase } = useNirvanaSessionTypes();
   const { macroTargets: supabaseMacroTargets, updateMacroTargets: updateSupabaseMacroTargets } = useMacroTargets();
   const { trackerSettings: supabaseTrackerSettings, updateTrackerSettings: updateSupabaseTrackerSettings } = useTrackerSettings();
+  const { images: winnersBibleImages, uploadImage, deleteImage, loading: winnersBibleLoading } = useWinnersBibleImages();
 
   const [newCompound, setNewCompound] = useState('');
   const [showDeleteWarning, setShowDeleteWarning] = useState<string | null>(null);
@@ -93,7 +95,6 @@ function SettingsPageContent() {
   });
 
   // Winners Bible state
-  const [winnersBibleImages, setWinnersBibleImages] = useState<WinnersBibleImage[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Sync local state when profile loads from Supabase
@@ -152,9 +153,7 @@ function SettingsPageContent() {
 
     // Timezone is now loaded from profile via useProfile hook
 
-    // Load Winners Bible images from storage
-    const storedImages = winnersBibleStorage.getImages();
-    setWinnersBibleImages(storedImages);
+    // Winners Bible images are now loaded from Supabase via useWinnersBibleImages hook
   }, [isFirstTime, router, profile]);
 
   // Update local profile state and mark as changed
@@ -406,28 +405,9 @@ function SettingsPageContent() {
           continue;
         }
 
-        // Convert to base64
-        const base64Data = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
-            // Remove the data:image/...;base64, prefix
-            const base64 = result.split(',')[1];
-            resolve(base64);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        // Add image to storage
+        // Upload to Supabase Storage
         try {
-          const updatedImages = winnersBibleStorage.addImage({
-            name: file.name,
-            base64Data,
-            mimeType: file.type,
-            size: file.size
-          });
-          setWinnersBibleImages(updatedImages);
+          await uploadImage(file);
         } catch (error) {
           alert((error as Error).message);
           break;
@@ -443,10 +423,9 @@ function SettingsPageContent() {
     }
   };
 
-  const removeWinnersBibleImage = (imageId: string) => {
+  const removeWinnersBibleImage = async (imageId: string) => {
     try {
-      const updatedImages = winnersBibleStorage.removeImage(imageId);
-      setWinnersBibleImages(updatedImages);
+      await deleteImage(imageId);
     } catch (error) {
       console.error('Error removing image:', error);
       alert('Error removing image. Please try again.');
@@ -1043,7 +1022,7 @@ function SettingsPageContent() {
                   <div key={image.id} className="relative group">
                     <div className="aspect-square rounded-lg overflow-hidden bg-mm-dark2 border border-mm-gray/20">
                       <img
-                        src={`data:${image.mimeType};base64,${image.base64Data}`}
+                        src={image.url}
                         alt={image.name}
                         className="w-full h-full object-cover"
                       />
@@ -1059,7 +1038,7 @@ function SettingsPageContent() {
                       <div className="bg-black/70 backdrop-blur-sm rounded px-2 py-1">
                         <p className="text-xs text-white truncate">{image.name}</p>
                         <p className="text-xs text-gray-300">
-                          {(image.size / 1024 / 1024).toFixed(1)}MB
+                          {(image.sizeBytes / 1024 / 1024).toFixed(1)}MB
                         </p>
                       </div>
                     </div>

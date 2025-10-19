@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { winnersBibleStorage, dailyEntryStorage, timezoneStorage } from '@/lib/storage';
-import { WinnersBibleImage } from '@/types';
+import React, { useState } from 'react';
+import { useWinnersBibleImages, useWinnersBibleStatus } from '@/lib/hooks/useWinnersBible';
+import { timezoneStorage } from '@/lib/storage';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
   PhotoIcon,
   CheckCircleIcon,
-  EyeIcon,
   SunIcon,
   MoonIcon
 } from '@heroicons/react/24/outline';
@@ -17,22 +16,14 @@ import {
 } from '@heroicons/react/24/solid';
 
 export default function WinnersBiblePage() {
-  const [images, setImages] = useState<WinnersBibleImage[]>([]);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [viewingStatus, setViewingStatus] = useState({ morningCompleted: false, nightCompleted: false });
-  const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const [completionType, setCompletionType] = useState<'morning' | 'night'>('morning');
-
   const currentDate = timezoneStorage.getCurrentDate();
 
-  useEffect(() => {
-    const loadedImages = winnersBibleStorage.getImages();
-    setImages(loadedImages);
+  const { images, loading: imagesLoading } = useWinnersBibleImages();
+  const { status: viewingStatus, markAsViewed } = useWinnersBibleStatus(currentDate);
 
-    // Load viewing status for today
-    const status = dailyEntryStorage.getWinnersBibleStatus(currentDate);
-    setViewingStatus(status);
-  }, [currentDate]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completionType, setCompletionType] = useState<'morning' | 'night'>('morning');
 
   const navigateImage = (direction: 'prev' | 'next') => {
     if (images.length === 0) return;
@@ -44,26 +35,31 @@ export default function WinnersBiblePage() {
     }
   };
 
-  const markAsViewed = (timeOfDay: 'morning' | 'night') => {
-    // Mark in daily entry
-    dailyEntryStorage.markWinnersBibleViewed(currentDate, timeOfDay);
+  const handleMarkAsViewed = async (timeOfDay: 'morning' | 'night') => {
+    try {
+      await markAsViewed(timeOfDay);
 
-    // Mark in Winners Bible storage as well
-    winnersBibleStorage.markViewed(currentDate, timeOfDay);
-
-    // Update local state
-    setViewingStatus(prev => ({
-      ...prev,
-      [timeOfDay === 'morning' ? 'morningCompleted' : 'nightCompleted']: true
-    }));
-
-    // Show completion modal
-    setCompletionType(timeOfDay);
-    setShowCompletionModal(true);
-    setTimeout(() => setShowCompletionModal(false), 2000);
+      // Show completion modal
+      setCompletionType(timeOfDay);
+      setShowCompletionModal(true);
+      setTimeout(() => setShowCompletionModal(false), 2000);
+    } catch (err) {
+      console.error('Error marking as viewed:', err);
+    }
   };
 
   const currentImage = images[currentImageIndex];
+
+  if (imagesLoading) {
+    return (
+      <div className="p-6 md:p-8 w-[90%] mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-heading mb-2">Winners Bible</h1>
+          <p className="text-mm-gray">Loading your motivational images...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (images.length === 0) {
     return (
@@ -128,7 +124,7 @@ export default function WinnersBiblePage() {
       {/* Image Display */}
       <div className="flex-1 relative flex items-center justify-center bg-black">
         <img
-          src={`data:${currentImage.mimeType};base64,${currentImage.base64Data}`}
+          src={currentImage.url}
           alt={currentImage.name}
           className="max-w-full max-h-full object-contain"
         />
@@ -174,7 +170,7 @@ export default function WinnersBiblePage() {
       <div className="p-4 bg-mm-dark2 border-t border-mm-gray/20">
         <div className="flex gap-4 justify-center">
           <button
-            onClick={() => markAsViewed('morning')}
+            onClick={() => handleMarkAsViewed('morning')}
             disabled={viewingStatus.morningCompleted}
             className={`px-6 py-3 rounded-full font-semibold transition-colors flex items-center gap-2 ${
               viewingStatus.morningCompleted
@@ -187,7 +183,7 @@ export default function WinnersBiblePage() {
           </button>
 
           <button
-            onClick={() => markAsViewed('night')}
+            onClick={() => handleMarkAsViewed('night')}
             disabled={viewingStatus.nightCompleted}
             className={`px-6 py-3 rounded-full font-semibold transition-colors flex items-center gap-2 ${
               viewingStatus.nightCompleted
