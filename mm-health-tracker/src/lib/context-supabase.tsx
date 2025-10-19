@@ -33,24 +33,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     error: null,
   });
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = async (userId: string, retries = 3) => {
     try {
       const profileService = new ProfileService(supabase);
 
-      // Try to get existing profile
+      // Try to get existing profile (should be created by database trigger)
       let profile = await profileService.get(userId);
 
-      // If no profile exists, create one
+      // If profile doesn't exist yet (race condition with trigger), retry
+      if (!profile && retries > 0) {
+        console.log('Profile not found, retrying...', retries);
+        await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+        return loadProfile(userId, retries - 1);
+      }
+
       if (!profile) {
-        console.log('Creating new profile for user:', userId);
-        profile = await profileService.create(userId, {
-          bmr: 2000,
-          height: null,
-          weight: null,
-          gender: null,
-          tracker_settings: {},
-          macro_targets: {},
-        });
+        throw new Error('Profile was not created. Please contact support.');
       }
 
       setState(prev => ({ ...prev, profile, isLoading: false, error: null }));

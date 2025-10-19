@@ -44,9 +44,22 @@ export default function SignUpPage() {
 
       if (error) throw error;
 
-      // If we have a session, email confirmation is disabled - redirect immediately
+      // If we have a session, email confirmation is disabled
       if (data.session) {
-        router.push('/');
+        // Wait a moment for the session to be fully established
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Refresh the session to ensure it's active
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session) {
+          // Session is active, redirect to home
+          router.push('/');
+          router.refresh(); // Force refresh to pick up new session
+        } else {
+          // No session, redirect to sign-in
+          router.push('/auth/sign-in');
+        }
         return;
       }
 
