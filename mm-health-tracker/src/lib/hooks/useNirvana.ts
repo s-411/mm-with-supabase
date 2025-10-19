@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@clerk/nextjs';
-import { createClerkSupabaseClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
+import { useApp } from '@/lib/context-supabase';
 import { NirvanaService } from '@/lib/services/nirvana.service';
 import { ProfileService } from '@/lib/services/profile.service';
 import { Database } from '@/lib/supabase/database.types';
@@ -13,13 +13,10 @@ type NirvanaMilestone = Database['public']['Tables']['nirvana_milestones']['Row'
 type NirvanaPersonalRecord = Database['public']['Tables']['nirvana_personal_records']['Row'];
 type BodyPartMapping = Database['public']['Tables']['body_part_mappings']['Row'];
 
-async function getNirvanaService(getToken: any, userId: string): Promise<NirvanaService> {
+async function getNirvanaService(userId: string): Promise<NirvanaService> {
   if (!userId) throw new Error('Not authenticated');
 
-  const token = await getToken({ template: 'supabase' });
-  if (!token) throw new Error('No auth token');
-
-  const supabase = createClerkSupabaseClient(token);
+  // Just use the standard supabase client - no token needed
   const profileService = new ProfileService(supabase);
   const profile = await profileService.get(userId);
 
@@ -30,14 +27,14 @@ async function getNirvanaService(getToken: any, userId: string): Promise<Nirvana
 
 // Hook for managing daily Nirvana sessions
 export function useNirvanaSessions(date: string) {
-  const { getToken, userId } = useAuth();
+  const { user } = useApp();
   const [entry, setEntry] = useState<NirvanaEntry | null>(null);
   const [sessions, setSessions] = useState<NirvanaSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadSessions = useCallback(async () => {
-    if (!userId) {
+    if (!user?.id) {
       setSessions([]);
       setEntry(null);
       setLoading(false);
@@ -46,7 +43,7 @@ export function useNirvanaSessions(date: string) {
 
     try {
       setLoading(true);
-      const nirvanaService = await getNirvanaService(getToken, userId);
+      const nirvanaService = await getNirvanaService(user.id);
       const data = await nirvanaService.getByDate(date);
       setEntry(data.entry);
       setSessions(data.sessions);
@@ -57,24 +54,26 @@ export function useNirvanaSessions(date: string) {
     } finally {
       setLoading(false);
     }
-  }, [getToken, userId, date]);
+  }, [user?.id, date]);
 
   useEffect(() => {
     loadSessions();
   }, [loadSessions]);
 
   const addSession = useCallback(async (sessionType: string) => {
-    const nirvanaService = await getNirvanaService(getToken, userId);
+    if (!user?.id) throw new Error('Not authenticated');
+    const nirvanaService = await getNirvanaService(user.id);
     const newSession = await nirvanaService.addSession(date, sessionType);
     await loadSessions(); // Reload to get updated counts
     return newSession;
-  }, [getToken, userId, date, loadSessions]);
+  }, [user?.id, date, loadSessions]);
 
   const removeSession = useCallback(async (sessionId: string) => {
-    const nirvanaService = await getNirvanaService(getToken, userId);
+    if (!user?.id) throw new Error('Not authenticated');
+    const nirvanaService = await getNirvanaService(user.id);
     await nirvanaService.removeSession(sessionId);
     await loadSessions(); // Reload to get updated counts
-  }, [getToken, userId, loadSessions]);
+  }, [user?.id, loadSessions]);
 
   return {
     entry,
@@ -89,13 +88,13 @@ export function useNirvanaSessions(date: string) {
 
 // Hook for managing weekly Nirvana data
 export function useNirvanaWeekly(weekStart: string) {
-  const { getToken, userId } = useAuth();
+  const { user } = useApp();
   const [weeklyData, setWeeklyData] = useState<{ [date: string]: { entry: NirvanaEntry | null; sessions: NirvanaSession[] } }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadWeeklyData = useCallback(async () => {
-    if (!userId) {
+    if (!user?.id) {
       setWeeklyData({});
       setLoading(false);
       return;
@@ -103,7 +102,7 @@ export function useNirvanaWeekly(weekStart: string) {
 
     try {
       setLoading(true);
-      const nirvanaService = await getNirvanaService(getToken, userId);
+      const nirvanaService = await getNirvanaService(user.id);
       const data = await nirvanaService.getWeeklyData(weekStart);
       setWeeklyData(data);
       setError(null);
@@ -113,7 +112,7 @@ export function useNirvanaWeekly(weekStart: string) {
     } finally {
       setLoading(false);
     }
-  }, [getToken, userId, weekStart]);
+  }, [user?.id, weekStart]);
 
   useEffect(() => {
     loadWeeklyData();
@@ -129,13 +128,13 @@ export function useNirvanaWeekly(weekStart: string) {
 
 // Hook for managing milestones
 export function useNirvanaMilestones() {
-  const { getToken, userId } = useAuth();
+  const { user } = useApp();
   const [milestones, setMilestones] = useState<NirvanaMilestone[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadMilestones = useCallback(async () => {
-    if (!userId) {
+    if (!user?.id) {
       setMilestones([]);
       setLoading(false);
       return;
@@ -143,7 +142,7 @@ export function useNirvanaMilestones() {
 
     try {
       setLoading(true);
-      const nirvanaService = await getNirvanaService(getToken, userId);
+      const nirvanaService = await getNirvanaService(user.id);
       const data = await nirvanaService.getMilestones();
       setMilestones(data);
       setError(null);
@@ -153,24 +152,26 @@ export function useNirvanaMilestones() {
     } finally {
       setLoading(false);
     }
-  }, [getToken, userId]);
+  }, [user?.id]);
 
   useEffect(() => {
     loadMilestones();
   }, [loadMilestones]);
 
   const toggleMilestone = useCallback(async (milestoneId: string, completed: boolean) => {
-    const nirvanaService = await getNirvanaService(getToken, userId);
+    if (!user?.id) throw new Error('Not authenticated');
+    const nirvanaService = await getNirvanaService(user.id);
     await nirvanaService.updateMilestone(milestoneId, completed);
     await loadMilestones();
-  }, [getToken, userId, loadMilestones]);
+  }, [user?.id, loadMilestones]);
 
   const addMilestone = useCallback(async (milestone: any) => {
-    const nirvanaService = await getNirvanaService(getToken, userId);
+    if (!user?.id) throw new Error('Not authenticated');
+    const nirvanaService = await getNirvanaService(user.id);
     const newMilestone = await nirvanaService.addMilestone(milestone);
     setMilestones(prev => [...prev, newMilestone]);
     return newMilestone;
-  }, [getToken, userId]);
+  }, [user?.id]);
 
   return {
     milestones,
@@ -184,13 +185,13 @@ export function useNirvanaMilestones() {
 
 // Hook for managing personal records
 export function useNirvanaPersonalRecords() {
-  const { getToken, userId } = useAuth();
+  const { user } = useApp();
   const [personalRecords, setPersonalRecords] = useState<NirvanaPersonalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadPersonalRecords = useCallback(async () => {
-    if (!userId) {
+    if (!user?.id) {
       setPersonalRecords([]);
       setLoading(false);
       return;
@@ -198,7 +199,7 @@ export function useNirvanaPersonalRecords() {
 
     try {
       setLoading(true);
-      const nirvanaService = await getNirvanaService(getToken, userId);
+      const nirvanaService = await getNirvanaService(user.id);
       const data = await nirvanaService.getPersonalRecords();
       setPersonalRecords(data);
       setError(null);
@@ -208,24 +209,26 @@ export function useNirvanaPersonalRecords() {
     } finally {
       setLoading(false);
     }
-  }, [getToken, userId]);
+  }, [user?.id]);
 
   useEffect(() => {
     loadPersonalRecords();
   }, [loadPersonalRecords]);
 
   const updatePersonalRecord = useCallback(async (recordId: string, value: number) => {
-    const nirvanaService = await getNirvanaService(getToken, userId);
+    if (!user?.id) throw new Error('Not authenticated');
+    const nirvanaService = await getNirvanaService(user.id);
     await nirvanaService.updatePersonalRecord(recordId, value);
     await loadPersonalRecords();
-  }, [getToken, userId, loadPersonalRecords]);
+  }, [user?.id, loadPersonalRecords]);
 
   const addPersonalRecord = useCallback(async (record: any) => {
-    const nirvanaService = await getNirvanaService(getToken, userId);
+    if (!user?.id) throw new Error('Not authenticated');
+    const nirvanaService = await getNirvanaService(user.id);
     const newRecord = await nirvanaService.addPersonalRecord(record);
     setPersonalRecords(prev => [...prev, newRecord]);
     return newRecord;
-  }, [getToken, userId]);
+  }, [user?.id]);
 
   return {
     personalRecords,
@@ -239,13 +242,13 @@ export function useNirvanaPersonalRecords() {
 
 // Hook for managing body part mappings
 export function useBodyPartMappings() {
-  const { getToken, userId } = useAuth();
+  const { user } = useApp();
   const [mappings, setMappings] = useState<BodyPartMapping[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadMappings = useCallback(async () => {
-    if (!userId) {
+    if (!user?.id) {
       setMappings([]);
       setLoading(false);
       return;
@@ -253,7 +256,7 @@ export function useBodyPartMappings() {
 
     try {
       setLoading(true);
-      const nirvanaService = await getNirvanaService(getToken, userId);
+      const nirvanaService = await getNirvanaService(user.id);
       const data = await nirvanaService.getBodyPartMappings();
       setMappings(data);
       setError(null);
@@ -263,18 +266,19 @@ export function useBodyPartMappings() {
     } finally {
       setLoading(false);
     }
-  }, [getToken, userId]);
+  }, [user?.id]);
 
   useEffect(() => {
     loadMappings();
   }, [loadMappings]);
 
   const updateMapping = useCallback(async (sessionType: string, bodyParts: any[], intensity: string) => {
-    const nirvanaService = await getNirvanaService(getToken, userId);
+    if (!user?.id) throw new Error('Not authenticated');
+    const nirvanaService = await getNirvanaService(user.id);
     const updated = await nirvanaService.updateBodyPartMapping(sessionType, bodyParts, intensity);
     await loadMappings();
     return updated;
-  }, [getToken, userId, loadMappings]);
+  }, [user?.id, loadMappings]);
 
   return {
     mappings,

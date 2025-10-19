@@ -1,19 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@clerk/nextjs';
-import { createClerkSupabaseClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
+import { useApp } from '@/lib/context-supabase';
 import { WinnersBibleService, WinnersBibleImageData } from '@/lib/services/winners-bible.service';
 import { DailyService } from '@/lib/services/daily.service';
 import { ProfileService } from '@/lib/services/profile.service';
 
-async function getWinnersBibleService(getToken: any, userId: string): Promise<WinnersBibleService> {
+async function getWinnersBibleService(userId: string): Promise<WinnersBibleService> {
   if (!userId) throw new Error('Not authenticated');
 
-  const token = await getToken({ template: 'supabase' });
-  if (!token) throw new Error('No auth token');
-
-  const supabase = createClerkSupabaseClient(token);
+  // Just use the standard supabase client - no token needed
   const profileService = new ProfileService(supabase);
   const profile = await profileService.get(userId);
 
@@ -22,13 +19,10 @@ async function getWinnersBibleService(getToken: any, userId: string): Promise<Wi
   return new WinnersBibleService(supabase, profile.id);
 }
 
-async function getDailyService(getToken: any, userId: string): Promise<DailyService> {
+async function getDailyService(userId: string): Promise<DailyService> {
   if (!userId) throw new Error('Not authenticated');
 
-  const token = await getToken({ template: 'supabase' });
-  if (!token) throw new Error('No auth token');
-
-  const supabase = createClerkSupabaseClient(token);
+  // Just use the standard supabase client - no token needed
   const profileService = new ProfileService(supabase);
   const profile = await profileService.get(userId);
 
@@ -41,13 +35,13 @@ async function getDailyService(getToken: any, userId: string): Promise<DailyServ
  * Hook for managing Winners Bible images
  */
 export function useWinnersBibleImages() {
-  const { getToken, userId } = useAuth();
+  const { user } = useApp();
   const [images, setImages] = useState<WinnersBibleImageData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadImages = useCallback(async () => {
-    if (!userId) {
+    if (!user?.id) {
       setImages([]);
       setLoading(false);
       return;
@@ -55,7 +49,7 @@ export function useWinnersBibleImages() {
 
     try {
       setLoading(true);
-      const service = await getWinnersBibleService(getToken, userId);
+      const service = await getWinnersBibleService(user.id);
       const data = await service.getImages();
       setImages(data);
       setError(null);
@@ -65,30 +59,33 @@ export function useWinnersBibleImages() {
     } finally {
       setLoading(false);
     }
-  }, [getToken, userId]);
+  }, [user?.id]);
 
   useEffect(() => {
     loadImages();
   }, [loadImages]);
 
   const uploadImage = useCallback(async (file: File) => {
-    const service = await getWinnersBibleService(getToken, userId);
+    if (!user?.id) throw new Error('Not authenticated');
+    const service = await getWinnersBibleService(user.id);
     const newImage = await service.uploadImage(file);
     setImages(prev => [...prev, newImage]);
     return newImage;
-  }, [getToken, userId]);
+  }, [user?.id]);
 
   const deleteImage = useCallback(async (imageId: string) => {
-    const service = await getWinnersBibleService(getToken, userId);
+    if (!user?.id) throw new Error('Not authenticated');
+    const service = await getWinnersBibleService(user.id);
     await service.deleteImage(imageId);
     setImages(prev => prev.filter(img => img.id !== imageId));
-  }, [getToken, userId]);
+  }, [user?.id]);
 
   const reorderImages = useCallback(async (imageIds: string[]) => {
-    const service = await getWinnersBibleService(getToken, userId);
+    if (!user?.id) throw new Error('Not authenticated');
+    const service = await getWinnersBibleService(user.id);
     await service.reorderImages(imageIds);
     await loadImages(); // Reload to get updated order
-  }, [getToken, userId, loadImages]);
+  }, [user?.id, loadImages]);
 
   return {
     images,
@@ -105,7 +102,7 @@ export function useWinnersBibleImages() {
  * Hook for managing Winners Bible viewing status for a specific date
  */
 export function useWinnersBibleStatus(date: string) {
-  const { getToken, userId } = useAuth();
+  const { user } = useApp();
   const [status, setStatus] = useState({
     morningCompleted: false,
     nightCompleted: false
@@ -114,7 +111,7 @@ export function useWinnersBibleStatus(date: string) {
   const [error, setError] = useState<string | null>(null);
 
   const loadStatus = useCallback(async () => {
-    if (!userId) {
+    if (!user?.id) {
       setStatus({ morningCompleted: false, nightCompleted: false });
       setLoading(false);
       return;
@@ -122,7 +119,7 @@ export function useWinnersBibleStatus(date: string) {
 
     try {
       setLoading(true);
-      const service = await getDailyService(getToken, userId);
+      const service = await getDailyService(user.id);
       const entry = await service.getByDate(date);
 
       setStatus({
@@ -136,21 +133,22 @@ export function useWinnersBibleStatus(date: string) {
     } finally {
       setLoading(false);
     }
-  }, [getToken, userId, date]);
+  }, [user?.id, date]);
 
   useEffect(() => {
     loadStatus();
   }, [loadStatus]);
 
   const markAsViewed = useCallback(async (timeOfDay: 'morning' | 'night') => {
-    const service = await getDailyService(getToken, userId);
+    if (!user?.id) throw new Error('Not authenticated');
+    const service = await getDailyService(user.id);
     await service.markWinnersBibleViewed(date, timeOfDay);
 
     setStatus(prev => ({
       ...prev,
       [timeOfDay === 'morning' ? 'morningCompleted' : 'nightCompleted']: true
     }));
-  }, [getToken, userId, date]);
+  }, [user?.id, date]);
 
   return {
     status,

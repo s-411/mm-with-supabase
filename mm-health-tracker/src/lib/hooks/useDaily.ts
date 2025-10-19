@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@clerk/nextjs';
-import { createClerkSupabaseClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
+import { useApp } from '@/lib/context-supabase';
 import { DailyService } from '@/lib/services/daily.service';
 import { ProfileService } from '@/lib/services/profile.service';
 import type { Database } from '@/lib/supabase/database.types';
@@ -18,7 +18,7 @@ interface DailyData {
 }
 
 export function useDaily(date: string) {
-  const { getToken, userId } = useAuth();
+  const { user } = useApp();
   const [data, setData] = useState<DailyData>({
     entry: null,
     calories: [],
@@ -29,22 +29,19 @@ export function useDaily(date: string) {
   const [error, setError] = useState<string | null>(null);
 
   const getDailyService = useCallback(async () => {
-    if (!userId) throw new Error('Not authenticated');
+    if (!user?.id) throw new Error('Not authenticated');
 
-    const token = await getToken({ template: 'supabase' });
-    if (!token) throw new Error('No auth token');
-
-    const supabase = createClerkSupabaseClient(token);
+    // Just use the standard supabase client - no token needed
     const profileService = new ProfileService(supabase);
-    const profile = await profileService.get(userId);
+    const profile = await profileService.get(user.id);
 
     if (!profile) throw new Error('Profile not found');
 
     return new DailyService(supabase, profile.id);
-  }, [getToken, userId]);
+  }, [user?.id]);
 
   const loadDailyData = useCallback(async () => {
-    if (!userId) {
+    if (!user?.id) {
       setData({ entry: null, calories: [], exercises: [], mits: [] });
       setLoading(false);
       return;
@@ -69,7 +66,7 @@ export function useDaily(date: string) {
     } finally {
       setLoading(false);
     }
-  }, [date, getDailyService, userId]);
+  }, [date, getDailyService, user?.id]);
 
   useEffect(() => {
     loadDailyData();
@@ -273,7 +270,7 @@ export function useDaily(date: string) {
 
 // Hook for loading data across a date range (for analytics/history)
 export function useDailyRange(startDate: string, endDate: string) {
-  const { getToken, userId } = useAuth();
+  const { user } = useApp();
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [calories, setCalories] = useState<CalorieEntry[]>([]);
   const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
@@ -281,22 +278,19 @@ export function useDailyRange(startDate: string, endDate: string) {
   const [error, setError] = useState<string | null>(null);
 
   const getDailyService = useCallback(async () => {
-    if (!userId) throw new Error('Not authenticated');
+    if (!user?.id) throw new Error('Not authenticated');
 
-    const token = await getToken({ template: 'supabase' });
-    if (!token) throw new Error('No auth token');
-
-    const supabase = createClerkSupabaseClient(token);
+    // Just use the standard supabase client - no token needed
     const profileService = new ProfileService(supabase);
-    const profile = await profileService.get(userId);
+    const profile = await profileService.get(user.id);
 
     if (!profile) throw new Error('Profile not found');
 
     return new DailyService(supabase, profile.id);
-  }, [getToken, userId]);
+  }, [user?.id]);
 
   const loadRangeData = useCallback(async () => {
-    if (!userId) {
+    if (!user?.id) {
       setEntries([]);
       setCalories([]);
       setExercises([]);
@@ -324,7 +318,7 @@ export function useDailyRange(startDate: string, endDate: string) {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, getDailyService, userId]);
+  }, [startDate, endDate, getDailyService, user?.id]);
 
   useEffect(() => {
     loadRangeData();

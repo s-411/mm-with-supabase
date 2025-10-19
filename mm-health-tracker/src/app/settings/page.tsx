@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useClerk } from '@clerk/nextjs';
-import { useProfile } from '@/lib/context-supabase';
+import { useProfile, useApp } from '@/lib/context-supabase';
 import { useCompounds, useFoodTemplates, useNirvanaSessionTypes, useMacroTargets, useTrackerSettings } from '@/lib/hooks/useSettings';
 import type { Database } from '@/lib/supabase/database.types';
 import { profileStorage, dataExport, compoundStorage, foodTemplateStorage, FoodTemplate, injectionTargetStorage, nirvanaSessionTypesStorage, timezoneStorage } from '@/lib/storage';
@@ -29,7 +28,7 @@ function SettingsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const isFirstTime = searchParams.get('firstTime') === 'true';
-  const { signOut } = useClerk();
+  const { signOut } = useApp();
 
   const { profile, updateProfile: updateSupabaseProfile, isLoading: profileLoading } = useProfile();
   const [isProfileComplete, setIsProfileComplete] = useState(false);

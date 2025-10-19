@@ -10,13 +10,13 @@ export class ProfileService {
   constructor(private supabase: SupabaseClient<Database>) {}
 
   /**
-   * Get user profile by Clerk user ID
+   * Get user profile by Supabase auth user ID
    */
-  async get(clerkUserId: string): Promise<UserProfile | null> {
+  async get(authUserId: string): Promise<UserProfile | null> {
     const { data, error } = await this.supabase
       .from('user_profiles')
       .select('*')
-      .eq('clerk_user_id', clerkUserId)
+      .eq('auth_user_id', authUserId)
       .single()
 
     if (error && error.code !== 'PGRST116') {
@@ -29,11 +29,11 @@ export class ProfileService {
   /**
    * Create new user profile
    */
-  async create(clerkUserId: string, profileData: Omit<UserProfileInsert, 'clerk_user_id'>): Promise<UserProfile> {
+  async create(authUserId: string, profileData: Omit<UserProfileInsert, 'auth_user_id'>): Promise<UserProfile> {
     const { data, error } = await this.supabase
       .from('user_profiles')
       .insert({
-        clerk_user_id: clerkUserId,
+        auth_user_id: authUserId,
         ...profileData,
       })
       .select()
@@ -49,11 +49,11 @@ export class ProfileService {
   /**
    * Update user profile
    */
-  async update(clerkUserId: string, updates: Partial<UserProfileUpdate>): Promise<UserProfile> {
+  async update(authUserId: string, updates: Partial<UserProfileUpdate>): Promise<UserProfile> {
     const { data, error } = await this.supabase
       .from('user_profiles')
       .update(updates)
-      .eq('clerk_user_id', clerkUserId)
+      .eq('auth_user_id', authUserId)
       .select()
       .single()
 
@@ -67,8 +67,8 @@ export class ProfileService {
   /**
    * Check if profile is complete (has required fields)
    */
-  async isComplete(clerkUserId: string): Promise<boolean> {
-    const profile = await this.get(clerkUserId)
+  async isComplete(authUserId: string): Promise<boolean> {
+    const profile = await this.get(authUserId)
 
     if (!profile) return false
 
@@ -84,14 +84,14 @@ export class ProfileService {
    * Get or create profile (useful for first-time users)
    */
   async getOrCreate(
-    clerkUserId: string,
-    defaults?: Omit<UserProfileInsert, 'clerk_user_id'>
+    authUserId: string,
+    defaults?: Omit<UserProfileInsert, 'auth_user_id'>
   ): Promise<UserProfile> {
-    const existing = await this.get(clerkUserId)
+    const existing = await this.get(authUserId)
 
     if (existing) return existing
 
-    return this.create(clerkUserId, defaults || {
+    return this.create(authUserId, defaults || {
       bmr: 2000,
       tracker_settings: {},
       macro_targets: {},

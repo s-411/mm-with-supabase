@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@clerk/nextjs'
-import { createClerkSupabaseClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
+import { useApp } from '@/lib/context-supabase'
 import { WeeklyService } from '@/lib/services/weekly.service'
 import { ProfileService } from '@/lib/services/profile.service'
 import type { Database } from '@/lib/supabase/database.types'
@@ -36,29 +36,26 @@ interface UseWeeklyReturn {
  * @param weekStartDate - Monday's date in YYYY-MM-DD format
  */
 export function useWeekly(weekStartDate: string): UseWeeklyReturn {
-  const { getToken, userId } = useAuth()
+  const { user } = useApp()
 
   const [entry, setEntry] = useState<WeeklyEntry | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const getWeeklyService = useCallback(async () => {
-    if (!userId) throw new Error('Not authenticated')
+    if (!user?.id) throw new Error('Not authenticated')
 
-    const token = await getToken({ template: 'supabase' })
-    if (!token) throw new Error('No auth token')
-
-    const supabase = createClerkSupabaseClient(token)
+    // Just use the standard supabase client - no token needed
     const profileService = new ProfileService(supabase)
-    const profile = await profileService.get(userId)
+    const profile = await profileService.get(user.id)
 
     if (!profile) throw new Error('Profile not found')
 
     return new WeeklyService(supabase, profile.id)
-  }, [getToken, userId])
+  }, [user?.id])
 
   const loadWeeklyEntry = useCallback(async () => {
-    if (!userId) {
+    if (!user?.id) {
       setEntry(null)
       setLoading(false)
       return
@@ -78,7 +75,7 @@ export function useWeekly(weekStartDate: string): UseWeeklyReturn {
     } finally {
       setLoading(false)
     }
-  }, [weekStartDate, getWeeklyService, userId])
+  }, [weekStartDate, getWeeklyService, user?.id])
 
   useEffect(() => {
     loadWeeklyEntry()

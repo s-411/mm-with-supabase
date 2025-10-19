@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@clerk/nextjs'
-import { createClerkSupabaseClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
+import { useApp } from '@/lib/context-supabase'
 import { DailyService } from '@/lib/services/daily.service'
 import { ProfileService } from '@/lib/services/profile.service'
 import type { Database } from '@/lib/supabase/database.types'
@@ -23,29 +23,26 @@ interface UseInjectionsReturn {
  * @param endDate - End date in YYYY-MM-DD format
  */
 export function useInjections(startDate: string, endDate: string): UseInjectionsReturn {
-  const { getToken, userId } = useAuth()
+  const { user } = useApp()
 
   const [injections, setInjections] = useState<InjectionEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const getDailyService = useCallback(async () => {
-    if (!userId) throw new Error('Not authenticated')
+    if (!user?.id) throw new Error('Not authenticated')
 
-    const token = await getToken({ template: 'supabase' })
-    if (!token) throw new Error('No auth token')
-
-    const supabase = createClerkSupabaseClient(token)
+    // Just use the standard supabase client - no token needed
     const profileService = new ProfileService(supabase)
-    const profile = await profileService.get(userId)
+    const profile = await profileService.get(user.id)
 
     if (!profile) throw new Error('Profile not found')
 
     return new DailyService(supabase, profile.id)
-  }, [getToken, userId])
+  }, [user?.id])
 
   const loadInjections = useCallback(async () => {
-    if (!userId) {
+    if (!user?.id) {
       setInjections([])
       setLoading(false)
       return
@@ -65,7 +62,7 @@ export function useInjections(startDate: string, endDate: string): UseInjections
     } finally {
       setLoading(false)
     }
-  }, [startDate, endDate, getDailyService, userId])
+  }, [startDate, endDate, getDailyService, user?.id])
 
   useEffect(() => {
     loadInjections()

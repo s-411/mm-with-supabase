@@ -1,15 +1,17 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useAuth, useUser } from '@clerk/nextjs';
-import { createClerkSupabaseClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { ProfileService } from '@/lib/services/profile.service';
 import { DailyService } from '@/lib/services/daily.service';
 import type { Database } from '@/lib/supabase/database.types';
+import type { User, Session } from '@supabase/supabase-js';
 
 type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 
 interface AppState {
+  user: User | null;
+  session: Session | null;
   profile: UserProfile | null;
   isLoading: boolean;
   error: string | null;
@@ -17,36 +19,22 @@ interface AppState {
 
 interface AppContextType extends AppState {
   refreshProfile: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const { getToken, userId, isLoaded: isAuthLoaded } = useAuth();
-  const { user } = useUser();
   const [state, setState] = useState<AppState>({
+    user: null,
+    session: null,
     profile: null,
     isLoading: true,
     error: null,
   });
 
-  const loadProfile = async () => {
-    if (!isAuthLoaded || !userId || !user) {
-      setState({ profile: null, isLoading: false, error: null });
-      return;
-    }
-
+  const loadProfile = async (userId: string) => {
     try {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
-
-      // Get Clerk JWT token
-      const token = await getToken({ template: 'supabase' });
-      if (!token) {
-        throw new Error('Failed to get authentication token');
-      }
-
-      // Create authenticated Supabase client
-      const supabase = createClerkSupabaseClient(token);
       const profileService = new ProfileService(supabase);
 
       // Try to get existing profile
@@ -65,28 +53,69 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
-      setState({ profile, isLoading: false, error: null });
+      setState(prev => ({ ...prev, profile, isLoading: false, error: null }));
     } catch (error) {
       console.error('Error loading profile:', error);
-      setState({
+      setState(prev => ({
+        ...prev,
         profile: null,
         isLoading: false,
         error: error instanceof Error ? error.message : 'Failed to load profile',
-      });
+      }));
     }
   };
 
-  // Load profile when auth is ready
+  // Initialize auth state and listen for changes
   useEffect(() => {
-    loadProfile();
-  }, [isAuthLoaded, userId]);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setState(prev => ({
+        ...prev,
+        user: session?.user ?? null,
+        session: session,
+        isLoading: !!session?.user // Only loading if we have a user
+      }));
+
+      if (session?.user) {
+        loadProfile(session.user.id);
+      } else {
+        setState(prev => ({ ...prev, isLoading: false }));
+      }
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setState(prev => ({
+        ...prev,
+        user: session?.user ?? null,
+        session: session,
+        isLoading: !!session?.user // Only loading if we have a user
+      }));
+
+      if (session?.user) {
+        loadProfile(session.user.id);
+      } else {
+        setState({ user: null, session: null, profile: null, isLoading: false, error: null });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const refreshProfile = async () => {
-    await loadProfile();
+    if (state.user) {
+      await loadProfile(state.user.id);
+    }
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
   };
 
   return (
-    <AppContext.Provider value={{ ...state, refreshProfile }}>
+    <AppContext.Provider value={{ ...state, refreshProfile, signOut }}>
       {children}
     </AppContext.Provider>
   );
@@ -104,22 +133,16 @@ export function useApp() {
 // Hook for profile operations
 export function useProfile() {
   const { profile, isLoading, refreshProfile } = useApp();
-  const { getToken, userId } = useAuth();
 
   const updateProfile = async (updates: Partial<Database['public']['Tables']['user_profiles']['Update']>) => {
-    if (!userId) {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const token = await getToken({ template: 'supabase' });
-    if (!token) {
-      throw new Error('Failed to get authentication token');
-    }
-
-    const supabase = createClerkSupabaseClient(token);
     const profileService = new ProfileService(supabase);
-
-    await profileService.update(userId, updates);
+    await profileService.update(user.id, updates);
     await refreshProfile();
   };
 
@@ -133,24 +156,18 @@ export function useProfile() {
 
 // Hook for daily entries
 export function useDailyEntry(date: string) {
-  const { getToken, userId } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const getDailyService = async () => {
-    if (!userId) {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const token = await getToken({ template: 'supabase' });
-    if (!token) {
-      throw new Error('Failed to get authentication token');
-    }
-
-    const supabase = createClerkSupabaseClient(token);
-
     // Get user profile to get the user_id UUID
     const profileService = new ProfileService(supabase);
-    const profile = await profileService.get(userId);
+    const profile = await profileService.get(user.id);
 
     if (!profile) {
       throw new Error('Profile not found');

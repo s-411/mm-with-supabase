@@ -8,11 +8,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-// Base Supabase client (unauthenticated)
+// Supabase client with built-in auth
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false, // Clerk handles session persistence
-    autoRefreshToken: false,
+    persistSession: true, // Enable session persistence
+    autoRefreshToken: true, // Automatically refresh tokens
+    detectSessionInUrl: true, // Detect session from URL (for email confirmations)
   },
   realtime: {
     params: {
@@ -20,41 +21,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     },
   },
 })
-
-// Cache for authenticated clients
-let cachedClerkClient: { client: any; token: string } | null = null
-
-// Create authenticated Supabase client with Clerk token (singleton pattern)
-export const createClerkSupabaseClient = (clerkToken: string) => {
-  // Return cached client if token hasn't changed
-  if (cachedClerkClient && cachedClerkClient.token === clerkToken) {
-    return cachedClerkClient.client
-  }
-
-  // Create new client
-  // Send Clerk JWT in Authorization header
-  // Supabase's PostgREST will parse it and make claims available to clerk_user_id()
-  const client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        'apikey': supabaseAnonKey, // Required for API access
-        'Authorization': `Bearer ${clerkToken}`, // Clerk JWT for RLS
-      },
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
-
-  // Cache it
-  cachedClerkClient = { client, token: clerkToken }
-  return client
-}
-
-// Note: Authentication is handled by Clerk, not Supabase Auth
-// The createClerkSupabaseClient function above creates an authenticated
-// Supabase client using the Clerk JWT token
 
 // Real-time subscription helpers
 export const subscribeToTable = (
