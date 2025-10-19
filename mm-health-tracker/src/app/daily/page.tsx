@@ -38,13 +38,28 @@ export default function DailyTrackerPage() {
     entry: supabaseEntry,
     calories: supabaseCalories,
     exercises: supabaseExercises,
+    mits: todayMITs,
     updateWeight: updateWeightSupabase,
     toggleDeepWork: toggleDeepWorkSupabase,
+    toggleMIT: toggleTodayMITSupabase,
   } = useDaily(currentDate);
+
+  // Calculate tomorrow's date for MIT planning
+  const tomorrowDate = React.useMemo(() => {
+    const tomorrow = new Date(currentDate);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  }, [currentDate]);
+
+  // Load tomorrow's MITs from Supabase
+  const {
+    mits: tomorrowMITs,
+    addMIT: addMITSupabase,
+    deleteMIT: deleteMITSupabase,
+  } = useDaily(tomorrowDate);
+
   const [showMITForm, setShowMITForm] = useState(false);
   const [mitInput, setMitInput] = useState('');
-  const [tomorrowMITs, setTomorrowMITs] = useState<MITEntry[]>([]);
-  const [todayMITs, setTodayMITs] = useState<MITEntry[]>([]);
   
   // Weekly objectives state
   const [weeklyEntry, setWeeklyEntry] = useState<WeeklyEntry | null>(null);
@@ -67,24 +82,7 @@ export default function DailyTrackerPage() {
 
     loadDayData(currentDate);
 
-    // Load today's MITs (from the current day)
-    const todayEntry = dailyEntryStorage.getByDate(currentDate);
-    if (todayEntry?.mits) {
-      setTodayMITs(todayEntry.mits);
-    } else {
-      setTodayMITs([]);
-    }
-
-    // Load tomorrow's MITs for planning
-    const tomorrow = new Date(currentDate);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowDateString = tomorrow.toISOString().split('T')[0];
-    const tomorrowEntry = dailyEntryStorage.getByDate(tomorrowDateString);
-    if (tomorrowEntry?.mits) {
-      setTomorrowMITs(tomorrowEntry.mits);
-    } else {
-      setTomorrowMITs([]);
-    }
+    // MITs are now loaded from Supabase via useDaily hooks
 
     // Load weekly objectives
     const currentWeekEntry = weeklyEntryStorage.getByDate(currentDate);
@@ -150,13 +148,7 @@ export default function DailyTrackerPage() {
       setWeightInput('');
     }
 
-    // Also reload MITs to ensure they're in sync
-    const todayEntry = dailyEntryStorage.getByDate(date);
-    if (todayEntry?.mits) {
-      setTodayMITs(todayEntry.mits);
-    } else {
-      setTodayMITs([]);
-    }
+    // MITs are now auto-reloaded from Supabase via useDaily hooks when date changes
   };
 
   const navigateDay = (direction: 'prev' | 'next') => {
@@ -214,44 +206,64 @@ export default function DailyTrackerPage() {
     window.location.href = '/winners-bible';
   };
 
-  const addMIT = () => {
+  const addMIT = async () => {
     if (mitInput.trim()) {
-      const newMIT: MITEntry = {
-        id: generateId(),
-        task: mitInput.trim(),
-        completed: false,
-        order: tomorrowMITs.length
-      };
-      const updatedMITs = [...tomorrowMITs, newMIT];
-      setTomorrowMITs(updatedMITs);
-      
-      // Save to tomorrow's entry
-      const tomorrow = new Date(currentDate);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowDateString = tomorrow.toISOString().split('T')[0];
-      dailyEntryStorage.updateMITs(tomorrowDateString, updatedMITs);
-      
-      setMitInput('');
+      try {
+        // Add MIT to Supabase
+        await addMITSupabase(mitInput.trim(), tomorrowMITs.length);
+
+        // Also update localStorage for backwards compatibility
+        const tomorrow = new Date(currentDate);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowDateString = tomorrow.toISOString().split('T')[0];
+        const newMIT: MITEntry = {
+          id: generateId(),
+          task: mitInput.trim(),
+          completed: false,
+          order: tomorrowMITs.length
+        };
+        const updatedMITs = [...tomorrowMITs, newMIT];
+        dailyEntryStorage.updateMITs(tomorrowDateString, updatedMITs);
+
+        setMitInput('');
+      } catch (error) {
+        console.error('Error adding MIT:', error);
+        alert('Failed to add MIT. Please try again.');
+      }
     }
   };
 
-  const removeMIT = (mitId: string) => {
-    const updatedMITs = tomorrowMITs.filter(mit => mit.id !== mitId);
-    setTomorrowMITs(updatedMITs);
-    
-    // Save to tomorrow's entry
-    const tomorrow = new Date(currentDate);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowDateString = tomorrow.toISOString().split('T')[0];
-    dailyEntryStorage.updateMITs(tomorrowDateString, updatedMITs);
+  const removeMIT = async (mitId: string) => {
+    try {
+      // Delete MIT from Supabase
+      await deleteMITSupabase(mitId);
+
+      // Also update localStorage for backwards compatibility
+      const tomorrow = new Date(currentDate);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowDateString = tomorrow.toISOString().split('T')[0];
+      const updatedMITs = tomorrowMITs.filter(mit => mit.id !== mitId);
+      dailyEntryStorage.updateMITs(tomorrowDateString, updatedMITs);
+    } catch (error) {
+      console.error('Error removing MIT:', error);
+      alert('Failed to remove MIT. Please try again.');
+    }
   };
 
-  const toggleTodayMIT = (mitId: string) => {
-    const updatedMITs = todayMITs.map(mit => 
-      mit.id === mitId ? { ...mit, completed: !mit.completed } : mit
-    );
-    setTodayMITs(updatedMITs);
-    dailyEntryStorage.updateMITs(currentDate, updatedMITs);
+  const toggleTodayMIT = async (mitId: string) => {
+    try {
+      // Toggle MIT in Supabase
+      await toggleTodayMITSupabase(mitId);
+
+      // Also update localStorage for backwards compatibility
+      const updatedMITs = todayMITs.map(mit =>
+        mit.id === mitId ? { ...mit, completed: !mit.completed } : mit
+      );
+      dailyEntryStorage.updateMITs(currentDate, updatedMITs);
+    } catch (error) {
+      console.error('Error toggling MIT:', error);
+      alert('Failed to toggle MIT. Please try again.');
+    }
   };
 
   // Weekly objectives functions
@@ -622,7 +634,7 @@ export default function DailyTrackerPage() {
                   )}
                 </button>
                 <span className={`flex-1 text-mm-white ${mit.completed ? 'line-through opacity-50' : ''}`}>
-                  {mit.task}
+                  {mit.task_description}
                 </span>
               </div>
             ))}
@@ -1150,7 +1162,7 @@ export default function DailyTrackerPage() {
                 <span className="w-6 h-6 rounded-full bg-yellow-500/20 text-yellow-500 text-xs flex items-center justify-center font-bold">
                   {index + 1}
                 </span>
-                <span className="flex-1 text-mm-white">{mit.task}</span>
+                <span className="flex-1 text-mm-white">{mit.task_description}</span>
                 <button
                   onClick={() => removeMIT(mit.id)}
                   className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded"
