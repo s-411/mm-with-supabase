@@ -22,19 +22,21 @@ interface UseInjectionsReturn {
  * @param endDate - End date in YYYY-MM-DD format
  */
 export function useInjections(startDate: string, endDate: string): UseInjectionsReturn {
-  const { userId } = useAuth()
+  const { getToken, userId } = useAuth()
 
   const [injections, setInjections] = useState<InjectionEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const getDailyService = useCallback(async () => {
-    const supabase = await createClerkSupabaseClient()
-    if (!userId) {
-      throw new Error('User ID is required')
-    }
+    if (!userId) throw new Error('Not authenticated')
+
+    const token = await getToken({ template: 'supabase' })
+    if (!token) throw new Error('No auth token')
+
+    const supabase = createClerkSupabaseClient(token)
     return new DailyService(supabase, userId)
-  }, [userId])
+  }, [getToken, userId])
 
   const loadInjections = useCallback(async () => {
     if (!userId) {

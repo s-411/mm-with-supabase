@@ -35,19 +35,21 @@ interface UseWeeklyReturn {
  * @param weekStartDate - Monday's date in YYYY-MM-DD format
  */
 export function useWeekly(weekStartDate: string): UseWeeklyReturn {
-  const { userId } = useAuth()
+  const { getToken, userId } = useAuth()
 
   const [entry, setEntry] = useState<WeeklyEntry | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const getWeeklyService = useCallback(async () => {
-    const supabase = await createClerkSupabaseClient()
-    if (!userId) {
-      throw new Error('User ID is required')
-    }
+    if (!userId) throw new Error('Not authenticated')
+
+    const token = await getToken({ template: 'supabase' })
+    if (!token) throw new Error('No auth token')
+
+    const supabase = createClerkSupabaseClient(token)
     return new WeeklyService(supabase, userId)
-  }, [userId])
+  }, [getToken, userId])
 
   const loadWeeklyEntry = useCallback(async () => {
     if (!userId) {
