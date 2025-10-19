@@ -63,8 +63,16 @@ export async function middleware(req: NextRequest) {
   // Define public routes that don't require authentication
   const isAuthPage = req.nextUrl.pathname.startsWith('/auth/');
 
+  console.log('[Middleware]', {
+    path: req.nextUrl.pathname,
+    hasSession: !!session,
+    isAuthPage,
+    userId: session?.user?.id,
+  });
+
   // If user is not signed in and trying to access protected route, redirect to sign in
   if (!session && !isAuthPage) {
+    console.log('[Middleware] No session, redirecting to sign-in');
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/auth/sign-in';
     return NextResponse.redirect(redirectUrl);
@@ -72,11 +80,13 @@ export async function middleware(req: NextRequest) {
 
   // If user is signed in and trying to access auth pages, redirect to home
   if (session && isAuthPage) {
+    console.log('[Middleware] Has session on auth page, redirecting to home');
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/';
     return NextResponse.redirect(redirectUrl);
   }
 
+  console.log('[Middleware] Allowing request');
   return response;
 }
 
