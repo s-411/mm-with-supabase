@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useClerk } from '@clerk/nextjs';
 import { useProfile } from '@/lib/context-supabase';
 import { useCompounds, useFoodTemplates, useNirvanaSessionTypes, useMacroTargets, useTrackerSettings } from '@/lib/hooks/useSettings';
 import type { Database } from '@/lib/supabase/database.types';
@@ -19,13 +20,15 @@ import {
   FireIcon,
   CalendarDaysIcon,
   SparklesIcon,
-  PhotoIcon
+  PhotoIcon,
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 
 function SettingsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const isFirstTime = searchParams.get('firstTime') === 'true';
+  const { signOut } = useClerk();
 
   const { profile, updateProfile: updateSupabaseProfile, isLoading: profileLoading } = useProfile();
   const [isProfileComplete, setIsProfileComplete] = useState(false);
@@ -1557,6 +1560,27 @@ function SettingsPageContent() {
           </div>
         </div>
       )}
+
+      {/* Logout Section */}
+      <div className="card-mm p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+            <ArrowRightOnRectangleIcon className="w-6 h-6 text-red-500" />
+          </div>
+          <div>
+            <h2 className="text-xl font-heading">Account</h2>
+            <p className="text-sm text-mm-gray">Sign out of your account</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => signOut(() => router.push('/'))}
+          className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+        >
+          <ArrowRightOnRectangleIcon className="w-5 h-5" />
+          Sign Out
+        </button>
+      </div>
     </div>
   );
 }
