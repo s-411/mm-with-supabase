@@ -44,6 +44,7 @@ export default function DailyTrackerPage() {
     updateWeight: updateWeightSupabase,
     toggleDeepWork: toggleDeepWorkSupabase,
     toggleMIT: toggleTodayMITSupabase,
+    reload: reloadDaily,
   } = useDaily(currentDate);
 
   // Calculate tomorrow's date for MIT planning
