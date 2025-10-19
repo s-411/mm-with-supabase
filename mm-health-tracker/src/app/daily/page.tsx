@@ -1,25 +1,21 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { profileStorage, dailyEntryStorage, generateId, weeklyEntryStorage, getWeekStartDate, getDayOfWeek, timezoneStorage, winnersBibleStorage, nirvanaSessionStorage } from '@/lib/storage';
+import { profileStorage, dailyEntryStorage, generateId, weeklyEntryStorage, getWeekStartDate, getDayOfWeek, timezoneStorage, nirvanaSessionStorage } from '@/lib/storage';
 import { DailyEntry, UserProfile, MITEntry, WeeklyEntry, WeeklyObjective } from '@/types';
 import { useMacroTargets } from '@/lib/hooks/useSettings';
+import { useDaily } from '@/lib/hooks/useDaily';
 import { formatDateLong } from '@/lib/dateUtils';
 import {
   CalendarDaysIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CheckCircleIcon,
-  ScaleIcon,
-  BriefcaseIcon,
   PlusIcon,
-  FireIcon,
-  BoltIcon,
   ClipboardDocumentListIcon,
   TrashIcon,
   XMarkIcon,
   AcademicCapIcon,
-  PhotoIcon,
   SunIcon,
   MoonIcon
 } from '@heroicons/react/24/outline';
@@ -36,6 +32,12 @@ export default function DailyTrackerPage() {
 
   // Load macro targets from Supabase
   const { macroTargets } = useMacroTargets();
+
+  // Load daily calories and exercises from Supabase
+  const {
+    calories: supabaseCalories,
+    exercises: supabaseExercises,
+  } = useDaily(currentDate);
   const [showMITForm, setShowMITForm] = useState(false);
   const [mitInput, setMitInput] = useState('');
   const [tomorrowMITs, setTomorrowMITs] = useState<MITEntry[]>([]);
@@ -270,34 +272,16 @@ export default function DailyTrackerPage() {
     // Default BMR if no profile
     const bmr = profile?.bmr || 2000;
 
-    if (!dailyEntry) {
-      return {
-        totalCaloriesConsumed: 0,
-        totalCaloriesBurned: 0,
-        calorieBalance: bmr,
-        macros: { carbs: 0, protein: 0, fat: 0 },
-        completionStatus: {
-          calories: false,
-          exercise: false,
-          weight: false,
-          deepWork: false,
-          mits: false,
-          winnersBible: false,
-          injections: false,
-          nirvana: false
-        }
-      };
-    }
-
-    const totalCaloriesConsumed = dailyEntry.calories.reduce((sum, cal) => sum + cal.calories, 0);
-    const totalCaloriesBurned = dailyEntry.exercises.reduce((sum, ex) => sum + ex.caloriesBurned, 0);
+    // Calculate totals from Supabase data (with Number conversion for decimals)
+    const totalCaloriesConsumed = supabaseCalories.reduce((sum, cal) => sum + (Number(cal.calories) || 0), 0);
+    const totalCaloriesBurned = supabaseExercises.reduce((sum, ex) => sum + (Number(ex.calories_burned) || 0), 0);
     const calorieBalance = bmr - totalCaloriesConsumed + totalCaloriesBurned;
 
-    const macros = dailyEntry.calories.reduce(
+    const macros = supabaseCalories.reduce(
       (totals, cal) => ({
-        carbs: totals.carbs + cal.carbs,
-        protein: totals.protein + cal.protein,
-        fat: totals.fat + cal.fat
+        carbs: totals.carbs + (Number(cal.carbs) || 0),
+        protein: totals.protein + (Number(cal.protein) || 0),
+        fat: totals.fat + (Number(cal.fat) || 0)
       }),
       { carbs: 0, protein: 0, fat: 0 }
     );
@@ -305,21 +289,21 @@ export default function DailyTrackerPage() {
     // Get tomorrow's MITs for completion status
     const tomorrow = new Date(currentDate);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     // Check if injections were logged for current date (from dailyEntry)
-    const hasInjections = dailyEntry.injections.length > 0;
+    const hasInjections = (dailyEntry?.injections?.length ?? 0) > 0;
 
     // Check if nirvana sessions were logged for current date
     const nirvanaEntry = nirvanaSessionStorage.getByDate(currentDate);
     const hasNirvanaSessions = nirvanaEntry && nirvanaEntry.sessions.length > 0;
 
     const completionStatus = {
-      calories: dailyEntry.calories.length > 0,
-      exercise: dailyEntry.exercises.length > 0,
-      weight: dailyEntry.weight !== undefined,
-      deepWork: dailyEntry.deepWorkCompleted || false,
+      calories: supabaseCalories.length > 0,
+      exercise: supabaseExercises.length > 0,
+      weight: dailyEntry?.weight !== undefined,
+      deepWork: dailyEntry?.deepWorkCompleted || false,
       mits: tomorrowMITs.length > 0,
-      winnersBible: (dailyEntry.winnersBibleMorning || false) || (dailyEntry.winnersBibleNight || false),
+      winnersBible: (dailyEntry?.winnersBibleMorning || false) || (dailyEntry?.winnersBibleNight || false),
       injections: hasInjections,
       nirvana: hasNirvanaSessions
     };
@@ -331,7 +315,7 @@ export default function DailyTrackerPage() {
       macros,
       completionStatus
     };
-  }, [currentDate, profile, dailyEntry, tomorrowMITs]);
+  }, [currentDate, profile, dailyEntry, tomorrowMITs, supabaseCalories, supabaseExercises]);
 
   const completedCount = Object.values(metrics.completionStatus).filter(Boolean).length;
   const totalMetrics = Object.keys(metrics.completionStatus).length;

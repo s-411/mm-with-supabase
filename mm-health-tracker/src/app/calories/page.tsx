@@ -1,18 +1,45 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { profileStorage, dailyEntryStorage, calculations, foodTemplateStorage, FoodTemplate, timezoneStorage } from '@/lib/storage';
-import { CalorieEntry, ExerciseEntry } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
-import { useMacroTargets } from '@/lib/hooks/useSettings';
+import { timezoneStorage } from '@/lib/storage';
+import { useMacroTargets, useFoodTemplates } from '@/lib/hooks/useSettings';
+import { useDaily, useDailyRange } from '@/lib/hooks/useDaily';
+import { useProfile } from '@/lib/context-supabase';
 import { formatDateForDisplay, formatDateLong } from '@/lib/dateUtils';
 import { PlusIcon, XMarkIcon, RectangleStackIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import type { Database } from '@/lib/supabase/database.types';
+
+type FoodTemplate = Database['public']['Tables']['food_templates']['Row'];
 
 export default function CaloriesPage() {
   const [currentDate, setCurrentDate] = useState(timezoneStorage.getCurrentDate());
-  const [bmr, setBmr] = useState<number>(0);
-  const [todayCalories, setTodayCalories] = useState<CalorieEntry[]>([]);
-  const [todayExercises, setTodayExercises] = useState<ExerciseEntry[]>([]);
+  const { profile } = useProfile();
+  const bmr = profile?.bmr || 2000;
+
+  // Load today's data from Supabase
+  const {
+    calories: todayCalories,
+    exercises: todayExercises,
+    addCalorieEntry: addCalorieToSupabase,
+    removeCalorieEntry: removeCalorieFromSupabase,
+    addExerciseEntry: addExerciseToSupabase,
+    removeExerciseEntry: removeExerciseFromSupabase,
+  } = useDaily(currentDate);
+
+  // Load food templates from Supabase
+  const { templates: foodTemplates } = useFoodTemplates();
+
+  // Load macro targets from Supabase
+  const { macroTargets } = useMacroTargets();
+
+  // Load historical data for the 30-day chart
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const {
+    calories: historicalCalories,
+    exercises: historicalExercises
+  } = useDailyRange(thirtyDaysAgo.toISOString().split('T')[0], currentDate);
+
   const [calorieInput, setCalorieInput] = useState({
     name: '',
     calories: '',
@@ -28,47 +55,63 @@ export default function CaloriesPage() {
   const [showCalorieForm, setShowCalorieForm] = useState(false);
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
-  const [foodTemplates, setFoodTemplates] = useState<FoodTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<FoodTemplate | null>(null);
   const [templateQuantity, setTemplateQuantity] = useState('1');
-  const [historyData, setHistoryData] = useState<Array<{
-    date: string;
-    foodConsumed: number;
-    exerciseBurnt: number;
-    calorieBalance: number;
-    proteinEaten: number;
-    proteinGoalMet: boolean;
-    fatEaten: number;
-    fatGoalMet: boolean;
-  }>>([]);
-
-  // Load macro targets from Supabase
-  const { macroTargets } = useMacroTargets();
 
   const isToday = timezoneStorage.isToday(currentDate);
 
-  useEffect(() => {
-    const profile = profileStorage.get();
-    if (profile) {
-      setBmr(profile.bmr);
+  // Calculate history data from Supabase
+  const historyData = React.useMemo(() => {
+    if (!historicalCalories.length && !historicalExercises.length) return [];
+
+    const history: Array<{
+      date: string;
+      foodConsumed: number;
+      exerciseBurnt: number;
+      calorieBalance: number;
+      proteinEaten: number;
+      proteinGoalMet: boolean;
+      fatEaten: number;
+      fatGoalMet: boolean;
+    }> = [];
+    const dates = new Set<string>();
+
+    // Collect all unique dates from the last 30 days
+    for (let i = 1; i <= 30; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      dates.add(date.toISOString().split('T')[0]);
     }
 
-    const currentEntry = dailyEntryStorage.getByDate(currentDate);
-    if (currentEntry) {
-      setTodayCalories(currentEntry.calories || []);
-      setTodayExercises(currentEntry.exercises || []);
-    } else {
-      setTodayCalories([]);
-      setTodayExercises([]);
-    }
+    // Calculate metrics for each date
+    dates.forEach(dateStr => {
+      const dayCalories = historicalCalories.filter(c => c.date === dateStr);
+      const dayExercises = historicalExercises.filter(e => e.date === dateStr);
 
-    // Load food templates
-    const templates = foodTemplateStorage.get();
-    setFoodTemplates(templates);
+      const foodConsumed = dayCalories.reduce((sum, c) => sum + (Number(c.calories) || 0), 0);
+      const exerciseBurnt = dayExercises.reduce((sum, e) => sum + (Number(e.calories_burned) || 0), 0);
+      const calorieBalance = bmr - foodConsumed + exerciseBurnt;
 
-    loadHistoryData(profile?.bmr || 0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDate]);
+      const proteinEaten = Math.round(dayCalories.reduce((sum, c) => sum + (Number(c.protein) || 0), 0));
+      const fatEaten = Math.round(dayCalories.reduce((sum, c) => sum + (Number(c.fat) || 0), 0));
+
+      const proteinTarget = parseInt(macroTargets.protein) || 0;
+      const fatTarget = parseInt(macroTargets.fat) || 0;
+
+      history.push({
+        date: dateStr,
+        foodConsumed,
+        exerciseBurnt,
+        calorieBalance,
+        proteinEaten,
+        proteinGoalMet: proteinTarget > 0 ? proteinEaten >= proteinTarget : false,
+        fatEaten,
+        fatGoalMet: fatTarget > 0 ? fatEaten >= fatTarget : false,
+      });
+    });
+
+    return history.reverse(); // Most recent last for the chart
+  }, [historicalCalories, historicalExercises, bmr, macroTargets]);
 
   // Chatbot script
   useEffect(() => {
@@ -110,37 +153,6 @@ export default function CaloriesPage() {
     };
   }, []);
 
-  const loadHistoryData = (userBmr: number) => {
-    const history = [];
-    const currentDate = new Date();
-    
-    // Get last 30 days (excluding today)
-    for (let i = 1; i <= 30; i++) {
-      const date = new Date(currentDate);
-      date.setDate(date.getDate() - i);
-      const dateString = date.toISOString().split('T')[0];
-      
-      const metrics = calculations.calculateDailyMetrics(dateString, userBmr);
-      
-      // Get targets for goal checking
-      const proteinTarget = parseInt(macroTargets.protein) || 0;
-      const fatTarget = parseInt(macroTargets.fat) || 0;
-      
-      history.push({
-        date: dateString,
-        foodConsumed: metrics.totalCaloriesConsumed,
-        exerciseBurnt: metrics.totalCaloriesBurned,
-        calorieBalance: metrics.calorieBalance,
-        proteinEaten: Math.round(metrics.macros.protein),
-        proteinGoalMet: proteinTarget > 0 ? metrics.macros.protein >= proteinTarget : false,
-        fatEaten: Math.round(metrics.macros.fat),
-        fatGoalMet: fatTarget > 0 ? metrics.macros.fat >= fatTarget : false
-      });
-    }
-    
-    setHistoryData(history);
-  };
-
   const navigateDay = (direction: 'prev' | 'next') => {
     const date = new Date(currentDate);
     if (direction === 'prev') {
@@ -151,19 +163,19 @@ export default function CaloriesPage() {
     setCurrentDate(date.toISOString().split('T')[0]);
   };
 
-  const totalConsumed = todayCalories.reduce((sum, item) => sum + item.calories, 0);
-  const totalBurnt = todayExercises.reduce((sum, item) => sum + item.caloriesBurned, 0);
+  const totalConsumed = todayCalories.reduce((sum, item) => sum + (Number(item.calories) || 0), 0);
+  const totalBurnt = todayExercises.reduce((sum, item) => sum + (Number(item.calories_burned) || 0), 0);
   const calorieBalance = bmr - totalConsumed + totalBurnt;
-  
+
   // Determine if deficit or surplus
   const isDeficit = calorieBalance >= 0;
   const deficitSurplusAmount = Math.abs(calorieBalance);
 
   // Calculate macros consumed today
   const macrosConsumed = {
-    carbs: todayCalories.reduce((sum, item) => sum + item.carbs, 0),
-    protein: todayCalories.reduce((sum, item) => sum + item.protein, 0),
-    fat: todayCalories.reduce((sum, item) => sum + item.fat, 0)
+    carbs: todayCalories.reduce((sum, item) => sum + (Number(item.carbs) || 0), 0),
+    protein: todayCalories.reduce((sum, item) => sum + (Number(item.protein) || 0), 0),
+    fat: todayCalories.reduce((sum, item) => sum + (Number(item.fat) || 0), 0)
   };
 
   // Macro targets as numbers
@@ -174,83 +186,83 @@ export default function CaloriesPage() {
     fat: parseInt(macroTargets.fat) || 0
   };
 
-  const addCalorieEntry = () => {
+  const addCalorieEntry = async () => {
     if (!calorieInput.calories || parseInt(calorieInput.calories) <= 0) return;
 
-    const newEntry: CalorieEntry = {
-      id: uuidv4(),
-      name: calorieInput.name || 'Unnamed Food',
-      calories: parseInt(calorieInput.calories),
-      carbs: parseInt(calorieInput.carbs || '0'),
-      protein: parseInt(calorieInput.protein || '0'),
-      fat: parseInt(calorieInput.fat || '0'),
-      timestamp: new Date()
-    };
+    try {
+      await addCalorieToSupabase({
+        food_name: calorieInput.name || 'Unnamed Food',
+        calories: parseInt(calorieInput.calories),
+        carbs: parseInt(calorieInput.carbs || '0'),
+        protein: parseInt(calorieInput.protein || '0'),
+        fat: parseInt(calorieInput.fat || '0'),
+      });
 
-    const updatedCalories = [...todayCalories, newEntry];
-    setTodayCalories(updatedCalories);
-
-    dailyEntryStorage.createOrUpdate(currentDate, { calories: updatedCalories });
-
-    setCalorieInput({ name: '', calories: '', carbs: '', protein: '', fat: '' });
-    setShowCalorieForm(false);
+      setCalorieInput({ name: '', calories: '', carbs: '', protein: '', fat: '' });
+      setShowCalorieForm(false);
+    } catch (error) {
+      console.error('Error adding calorie entry:', error);
+      alert('Failed to add calorie entry. Please try again.');
+    }
   };
 
-  const addTemplatedFood = () => {
+  const addTemplatedFood = async () => {
     if (!selectedTemplate || !templateQuantity || parseInt(templateQuantity) <= 0) return;
 
     const quantity = parseInt(templateQuantity);
-    const newEntry: CalorieEntry = {
-      id: uuidv4(),
-      name: `${selectedTemplate.name} (${quantity}x)`,
-      calories: selectedTemplate.calories * quantity,
-      carbs: selectedTemplate.carbs * quantity,
-      protein: selectedTemplate.protein * quantity,
-      fat: selectedTemplate.fat * quantity,
-      timestamp: new Date()
-    };
+    try {
+      await addCalorieToSupabase({
+        food_name: `${selectedTemplate.name} (${quantity}x)`,
+        calories: Number(selectedTemplate.calories) * quantity,
+        carbs: Number(selectedTemplate.carbs) * quantity,
+        protein: Number(selectedTemplate.protein) * quantity,
+        fat: Number(selectedTemplate.fat) * quantity,
+      });
 
-    const updatedCalories = [...todayCalories, newEntry];
-    setTodayCalories(updatedCalories);
-
-    dailyEntryStorage.createOrUpdate(currentDate, { calories: updatedCalories });
-
-    setSelectedTemplate(null);
-    setTemplateQuantity('1');
-    setShowTemplateForm(false);
+      setSelectedTemplate(null);
+      setTemplateQuantity('1');
+      setShowTemplateForm(false);
+    } catch (error) {
+      console.error('Error adding templated food:', error);
+      alert('Failed to add templated food. Please try again.');
+    }
   };
 
-  const addExerciseEntry = () => {
-    if (!exerciseInput.duration || !exerciseInput.caloriesBurned || 
+  const addExerciseEntry = async () => {
+    if (!exerciseInput.duration || !exerciseInput.caloriesBurned ||
         parseInt(exerciseInput.duration) <= 0 || parseInt(exerciseInput.caloriesBurned) <= 0) return;
 
-    const newEntry: ExerciseEntry = {
-      id: uuidv4(),
-      type: exerciseInput.type || 'Unnamed Exercise',
-      duration: parseInt(exerciseInput.duration),
-      caloriesBurned: parseInt(exerciseInput.caloriesBurned),
-      timestamp: new Date()
-    };
+    try {
+      await addExerciseToSupabase({
+        exercise_type: exerciseInput.type || 'Unnamed Exercise',
+        duration_minutes: parseInt(exerciseInput.duration),
+        calories_burned: parseInt(exerciseInput.caloriesBurned),
+      });
 
-    const updatedExercises = [...todayExercises, newEntry];
-    setTodayExercises(updatedExercises);
-
-    dailyEntryStorage.createOrUpdate(currentDate, { exercises: updatedExercises });
-
-    setExerciseInput({ type: '', duration: '', caloriesBurned: '' });
-    setShowExerciseForm(false);
+      setExerciseInput({ type: '', duration: '', caloriesBurned: '' });
+      setShowExerciseForm(false);
+    } catch (error) {
+      console.error('Error adding exercise entry:', error);
+      alert('Failed to add exercise entry. Please try again.');
+    }
   };
 
-  const removeCalorieEntry = (id: string) => {
-    const updatedCalories = todayCalories.filter(item => item.id !== id);
-    setTodayCalories(updatedCalories);
-    dailyEntryStorage.createOrUpdate(currentDate, { calories: updatedCalories });
+  const removeCalorieEntry = async (id: string) => {
+    try {
+      await removeCalorieFromSupabase(id);
+    } catch (error) {
+      console.error('Error removing calorie entry:', error);
+      alert('Failed to remove calorie entry. Please try again.');
+    }
   };
 
-  const removeExerciseEntry = (id: string) => {
-    const updatedExercises = todayExercises.filter(item => item.id !== id);
-    setTodayExercises(updatedExercises);
-    dailyEntryStorage.createOrUpdate(currentDate, { exercises: updatedExercises });
+  const removeExerciseEntry = async (id: string) => {
+    try {
+      await removeExerciseFromSupabase(id);
+    } catch (error) {
+      console.error('Error removing exercise entry:', error);
+      alert('Failed to remove exercise entry. Please try again.');
+    }
   };
 
   return (
@@ -424,16 +436,16 @@ export default function CaloriesPage() {
                             <p className="text-sm font-semibold mb-2">Preview (x{templateQuantity})</p>
                             <div className="flex flex-wrap gap-4 text-sm">
                               <span className="text-orange-500">
-                                {selectedTemplate.calories * parseInt(templateQuantity || '1')} cal
+                                {(selectedTemplate.calories ?? 0) * parseInt(templateQuantity || '1')} cal
                               </span>
                               <span className="text-mm-gray">
-                                C: {selectedTemplate.carbs * parseInt(templateQuantity || '1')}g
+                                C: {(selectedTemplate.carbs ?? 0) * parseInt(templateQuantity || '1')}g
                               </span>
                               <span className="text-mm-gray">
-                                P: {selectedTemplate.protein * parseInt(templateQuantity || '1')}g
+                                P: {(selectedTemplate.protein ?? 0) * parseInt(templateQuantity || '1')}g
                               </span>
                               <span className="text-mm-gray">
-                                F: {selectedTemplate.fat * parseInt(templateQuantity || '1')}g
+                                F: {(selectedTemplate.fat ?? 0) * parseInt(templateQuantity || '1')}g
                               </span>
                             </div>
                           </div>
@@ -476,12 +488,12 @@ export default function CaloriesPage() {
                   <div key={item.id} className="card-mm p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="font-semibold mb-1">{item.name}</h3>
+                        <h3 className="font-semibold mb-1">{item.food_name}</h3>
                         <div className="flex flex-wrap gap-4 text-sm">
-                          <span className="text-mm-blue">{item.calories} cal</span>
-                          <span className="text-mm-gray">C: {item.carbs}g</span>
-                          <span className="text-mm-gray">P: {item.protein}g</span>
-                          <span className="text-mm-gray">F: {item.fat}g</span>
+                          <span className="text-mm-blue">{Number(item.calories) || 0} cal</span>
+                          <span className="text-mm-gray">C: {Math.round(Number(item.carbs) || 0)}g</span>
+                          <span className="text-mm-gray">P: {Math.round(Number(item.protein) || 0)}g</span>
+                          <span className="text-mm-gray">F: {Math.round(Number(item.fat) || 0)}g</span>
                         </div>
                       </div>
                       <button
@@ -561,10 +573,10 @@ export default function CaloriesPage() {
                   <div key={item.id} className="card-mm p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="font-semibold mb-1">{item.type}</h3>
+                        <h3 className="font-semibold mb-1">{item.exercise_type}</h3>
                         <div className="flex gap-4 text-sm">
-                          <span className="text-green-500">{item.caloriesBurned} cal</span>
-                          <span className="text-mm-gray">{item.duration} min</span>
+                          <span className="text-green-500">{Number(item.calories_burned) || 0} cal</span>
+                          <span className="text-mm-gray">{item.duration_minutes || 0} min</span>
                         </div>
                       </div>
                       <button
