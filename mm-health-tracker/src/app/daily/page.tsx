@@ -33,10 +33,13 @@ export default function DailyTrackerPage() {
   // Load macro targets from Supabase
   const { macroTargets } = useMacroTargets();
 
-  // Load daily calories and exercises from Supabase
+  // Load daily calories, exercises, weight, and deep work from Supabase
   const {
+    entry: supabaseEntry,
     calories: supabaseCalories,
     exercises: supabaseExercises,
+    updateWeight: updateWeightSupabase,
+    toggleDeepWork: toggleDeepWorkSupabase,
   } = useDaily(currentDate);
   const [showMITForm, setShowMITForm] = useState(false);
   const [mitInput, setMitInput] = useState('');
@@ -106,6 +109,15 @@ export default function DailyTrackerPage() {
     }
   }, [currentDate]);
 
+  // Pre-populate weight input from Supabase entry
+  useEffect(() => {
+    if (supabaseEntry?.weight_kg) {
+      setWeightInput(supabaseEntry.weight_kg.toString());
+    } else {
+      setWeightInput('');
+    }
+  }, [supabaseEntry]);
+
   // Reload data when page becomes visible (e.g., returning from another page)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -120,7 +132,7 @@ export default function DailyTrackerPage() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
@@ -157,27 +169,44 @@ export default function DailyTrackerPage() {
     setCurrentDate(date.toISOString().split('T')[0]);
   };
 
-  const updateWeight = () => {
+  const updateWeight = async () => {
     const weight = parseFloat(weightInput);
     if (!isNaN(weight) && weight > 0) {
-      // Update daily entry
-      const updatedEntry = dailyEntryStorage.updateWeight(currentDate, weight);
-      setDailyEntry(updatedEntry);
-      
-      // Also update the profile weight if this is today's weight
-      const todayDate = timezoneStorage.getCurrentDate();
-      if (currentDate === todayDate && profile) {
-        const updatedProfile = profileStorage.update({ weight });
-        setProfile(updatedProfile); // Update local profile state
+      try {
+        // Update weight in Supabase
+        await updateWeightSupabase(weight);
+
+        // Also update localStorage daily entry for backwards compatibility
+        const updatedEntry = dailyEntryStorage.updateWeight(currentDate, weight);
+        setDailyEntry(updatedEntry);
+
+        // Also update the profile weight if this is today's weight
+        const todayDate = timezoneStorage.getCurrentDate();
+        if (currentDate === todayDate && profile) {
+          const updatedProfile = profileStorage.update({ weight });
+          setProfile(updatedProfile); // Update local profile state
+        }
+
+        setShowWeightForm(false);
+      } catch (error) {
+        console.error('Error updating weight:', error);
+        alert('Failed to update weight. Please try again.');
       }
-      
-      setShowWeightForm(false);
     }
   };
 
-  const toggleDeepWork = () => {
-    const updatedEntry = dailyEntryStorage.toggleDeepWork(currentDate);
-    setDailyEntry(updatedEntry);
+  const toggleDeepWork = async () => {
+    try {
+      // Toggle deep work in Supabase
+      await toggleDeepWorkSupabase();
+
+      // Also update localStorage for backwards compatibility
+      const updatedEntry = dailyEntryStorage.toggleDeepWork(currentDate);
+      setDailyEntry(updatedEntry);
+    } catch (error) {
+      console.error('Error toggling deep work:', error);
+      alert('Failed to toggle deep work. Please try again.');
+    }
   };
 
   const handleWinnersBibleView = () => {
@@ -300,8 +329,8 @@ export default function DailyTrackerPage() {
     const completionStatus = {
       calories: supabaseCalories.length > 0,
       exercise: supabaseExercises.length > 0,
-      weight: dailyEntry?.weight !== undefined,
-      deepWork: dailyEntry?.deepWorkCompleted || false,
+      weight: supabaseEntry?.weight_kg !== null && supabaseEntry?.weight_kg !== undefined,
+      deepWork: supabaseEntry?.deep_work_completed || false,
       mits: tomorrowMITs.length > 0,
       winnersBible: (dailyEntry?.winnersBibleMorning || false) || (dailyEntry?.winnersBibleNight || false),
       injections: hasInjections,
@@ -752,7 +781,7 @@ export default function DailyTrackerPage() {
             onClick={() => setShowWeightForm(!showWeightForm)}
             className="btn-mm w-full py-2 text-sm mb-3"
           >
-            {dailyEntry?.weight ? 'Update Weight' : (
+            {supabaseEntry?.weight_kg ? 'Update Weight' : (
               <>
                 <PlusIcon className="w-4 h-4 mr-2" />
                 Add Weight
@@ -760,10 +789,10 @@ export default function DailyTrackerPage() {
             )}
           </button>
 
-          {dailyEntry?.weight && (
+          {supabaseEntry?.weight_kg && (
             <div className="text-center">
               <div className="text-2xl font-heading text-mm-white">
-                {dailyEntry.weight}kg
+                {supabaseEntry.weight_kg}kg
               </div>
             </div>
           )}
