@@ -67,7 +67,7 @@ export default function InjectionsPage() {
   // Set default compound when compounds load
   useEffect(() => {
     if (compounds.length > 0 && !injectionInput.compound) {
-      setInjectionInput(prev => ({ ...prev, compound: compounds[0] }));
+      setInjectionInput(prev => ({ ...prev, compound: compounds[0].name }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compounds]);
@@ -80,7 +80,7 @@ export default function InjectionsPage() {
     if (compoundFilter !== 'all') {
       if (compoundFilter === 'custom') {
         filtered = filtered.filter(injection =>
-          !compounds.includes(injection.compound_name)
+          !compounds.some(c => c.name === injection.compound_name)
         );
       } else {
         filtered = filtered.filter(injection =>
@@ -126,7 +126,7 @@ export default function InjectionsPage() {
 
       // Reset form
       setInjectionInput({
-        compound: compounds.length > 0 ? compounds[0] : '',
+        compound: compounds.length > 0 ? compounds[0].name : '',
         dosage: '',
         unit: 'mg',
         notes: '',
@@ -225,7 +225,7 @@ export default function InjectionsPage() {
               className="input-mm w-full"
             >
               {compounds.map(compound => (
-                <option key={compound} value={compound}>{compound}</option>
+                <option key={compound.id} value={compound.name}>{compound.name}</option>
               ))}
             </select>
           </div>
@@ -468,7 +468,7 @@ export default function InjectionsPage() {
         >
           <option value="all">All Compounds</option>
           {compounds.map(compound => (
-            <option key={compound} value={compound}>{compound}</option>
+            <option key={compound.id} value={compound.name}>{compound.name}</option>
           ))}
           <option value="custom">Custom</option>
         </select>
