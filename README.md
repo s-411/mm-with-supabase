@@ -87,3 +87,16 @@ See [CLERK-SUPABASE-SETUP.md](CLERK-SUPABASE-SETUP.md) for detailed instructions
 - Optimized client-side Supabase instance management
 
 Complete details in [ERROR-FIXES-SUMMARY.md](ERROR-FIXES-SUMMARY.md)
+
+## Authentication Setup
+
+This application uses Clerk for authentication with Supabase as the database. The setup requires:
+
+1. **Clerk JWT Template**: Must be named `supabase` with custom signing enabled
+2. **Custom Signing Key**: Use Supabase's JWT secret for signing
+3. **Algorithm**: HS256 (HMAC SHA-256)
+
+For detailed setup instructions, see:
+- [CLERK-CUSTOM-SIGNING-KEY.md](CLERK-CUSTOM-SIGNING-KEY.md) - Clerk configuration
+- [CLERK-SUPABASE-SETUP.md](CLERK-SUPABASE-SETUP.md) - JWT template setup
+- [DEBUG-JWT-ISSUES.md](DEBUG-JWT-ISSUES.md) - Troubleshooting guide
