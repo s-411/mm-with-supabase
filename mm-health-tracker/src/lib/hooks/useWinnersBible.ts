@@ -7,16 +7,11 @@ import { WinnersBibleService, WinnersBibleImageData } from '@/lib/services/winne
 import { DailyService } from '@/lib/services/daily.service';
 import { ProfileService } from '@/lib/services/profile.service';
 
-async function getWinnersBibleService(userId: string): Promise<WinnersBibleService> {
-  if (!userId) throw new Error('Not authenticated');
+async function getWinnersBibleService(authUserId: string): Promise<WinnersBibleService> {
+  if (!authUserId) throw new Error('Not authenticated');
 
-  // Just use the standard supabase client - no token needed
-  const profileService = new ProfileService(supabase);
-  const profile = await profileService.get(userId);
-
-  if (!profile) throw new Error('Profile not found');
-
-  return new WinnersBibleService(supabase, profile.id);
+  // Use auth user ID directly for storage paths (matches RLS policy)
+  return new WinnersBibleService(supabase, authUserId);
 }
 
 async function getDailyService(userId: string): Promise<DailyService> {
