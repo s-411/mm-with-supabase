@@ -10,8 +10,14 @@ import { ProfileService } from '@/lib/services/profile.service';
 async function getWinnersBibleService(authUserId: string): Promise<WinnersBibleService> {
   if (!authUserId) throw new Error('Not authenticated');
 
-  // Use auth user ID directly for storage paths (matches RLS policy)
-  return new WinnersBibleService(supabase, authUserId);
+  // Get the user's profile ID for database operations
+  const profileService = new ProfileService(supabase);
+  const profile = await profileService.get(authUserId);
+
+  if (!profile) throw new Error('Profile not found');
+
+  // Pass both profile.id (for DB) and authUserId (for storage)
+  return new WinnersBibleService(supabase, profile.id, authUserId);
 }
 
 async function getDailyService(userId: string): Promise<DailyService> {

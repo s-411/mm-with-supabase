@@ -19,8 +19,15 @@ export class WinnersBibleService {
 
   constructor(
     private supabase: SupabaseClient<Database>,
-    private userId: string
-  ) {}
+    private userId: string,
+    private authUserId?: string // For storage paths (matches auth.uid() in RLS)
+  ) {
+    // If authUserId not provided, assume userId is the auth user ID
+    // (for backwards compatibility during migration)
+    if (!this.authUserId) {
+      this.authUserId = userId;
+    }
+  }
 
   /**
    * Get all Winners Bible images for the user
@@ -69,7 +76,8 @@ export class WinnersBibleService {
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const fileName = `${timestamp}_${sanitizedName}`;
-    const storagePath = `${this.userId}/${fileName}`;
+    // Use authUserId for storage path to match storage RLS policy
+    const storagePath = `${this.authUserId}/${fileName}`;
 
     // Upload to Supabase Storage
     const { error: uploadError } = await this.supabase.storage
