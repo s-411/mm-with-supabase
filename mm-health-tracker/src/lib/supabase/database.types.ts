@@ -12,33 +12,46 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      body_part_mappings: {
+        Row: {
+          body_parts: Json | null
+          created_at: string | null
+          id: string
+          intensity: string | null
+          session_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          body_parts?: Json | null
+          created_at?: string | null
+          id?: string
+          intensity?: string | null
+          session_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          body_parts?: Json | null
+          created_at?: string | null
+          id?: string
+          intensity?: string | null
+          session_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "body_part_mappings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calorie_entries: {
         Row: {
           calories: number | null
@@ -500,6 +513,115 @@ export type Database = {
           },
         ]
       }
+      nirvana_milestones: {
+        Row: {
+          category: string
+          completed: boolean | null
+          completed_date: string | null
+          created_at: string | null
+          description: string | null
+          difficulty: string
+          id: string
+          order_index: number | null
+          target_value: number | null
+          title: string
+          unit: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          completed?: boolean | null
+          completed_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          difficulty: string
+          id?: string
+          order_index?: number | null
+          target_value?: number | null
+          title: string
+          unit?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          completed?: boolean | null
+          completed_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string
+          id?: string
+          order_index?: number | null
+          target_value?: number | null
+          title?: string
+          unit?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nirvana_milestones_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nirvana_personal_records: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          name: string
+          notes: string | null
+          previous_date: string | null
+          previous_value: number | null
+          record_date: string | null
+          unit: string
+          updated_at: string | null
+          user_id: string
+          value: number
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          previous_date?: string | null
+          previous_value?: number | null
+          record_date?: string | null
+          unit: string
+          updated_at?: string | null
+          user_id: string
+          value: number
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          previous_date?: string | null
+          previous_value?: number | null
+          record_date?: string | null
+          unit?: string
+          updated_at?: string | null
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nirvana_personal_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nirvana_session_types: {
         Row: {
           created_at: string | null
@@ -843,9 +965,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

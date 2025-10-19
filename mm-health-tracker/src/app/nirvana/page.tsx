@@ -1,9 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { nirvanaSessionStorage, nirvanaSessionTypesStorage, nirvanaProgressStorage, timezoneStorage } from '@/lib/storage';
-import { NirvanaSession, NirvanaMilestone, PersonalRecord } from '@/types';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { timezoneStorage } from '@/lib/storage';
+import { useNirvanaSessions, useNirvanaWeekly, useNirvanaMilestones, useNirvanaPersonalRecords } from '@/lib/hooks/useNirvana';
+import { useNirvanaSessionTypes } from '@/lib/hooks/useSettings';
 import { formatDateLong } from '@/lib/dateUtils';
+import { Database } from '@/lib/supabase/database.types';
+
+type NirvanaSession = Database['public']['Tables']['nirvana_sessions']['Row'];
+type NirvanaMilestone = Database['public']['Tables']['nirvana_milestones']['Row'];
+type NirvanaPersonalRecord = Database['public']['Tables']['nirvana_personal_records']['Row'];
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon,
@@ -22,65 +28,57 @@ import {
   StarIcon as StarIconSolid
 } from '@heroicons/react/24/solid';
 
+// Get the start of the week (Monday) for a given date
+const getWeekStart = (date: string) => {
+  const d = new Date(date + 'T12:00:00');
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  const monday = new Date(d.setDate(diff));
+  return monday.toISOString().split('T')[0];
+};
+
 export default function NirvanaPage() {
   const [currentDate, setCurrentDate] = useState(timezoneStorage.getCurrentDate());
-  const [sessionTypes, setSessionTypes] = useState<string[]>([]);
-  const [todaySessions, setTodaySessions] = useState<NirvanaSession[]>([]);
-  const [weeklyData, setWeeklyData] = useState<{ [key: string]: NirvanaSession[] }>({});
-  const [milestones, setMilestones] = useState<NirvanaMilestone[]>([]);
-  const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
   const [showRecordModal, setShowRecordModal] = useState<string | null>(null);
   const [recordValue, setRecordValue] = useState('');
 
-  const loadProgress = useCallback(() => {
-    const progress = nirvanaProgressStorage.get();
-    setMilestones(progress.milestones);
-    setPersonalRecords(progress.personalRecords);
-  }, []);
+  // Calculate week start for current date
+  const weekStart = useMemo(() => getWeekStart(currentDate), [currentDate]);
 
-  const loadSessions = useCallback(() => {
-    const entry = nirvanaSessionStorage.getByDate(currentDate);
-    setTodaySessions(entry?.sessions || []);
-  }, [currentDate]);
+  // Load session types from settings
+  const { sessionTypes } = useNirvanaSessionTypes();
 
-  const loadWeeklyData = useCallback(() => {
-    const weekStart = getWeekStart(currentDate);
-    const weekData: { [date: string]: NirvanaSession[] } = {};
+  // Load today's sessions
+  const {
+    sessions: todaySessions,
+    addSession: addSessionSupabase,
+    removeSession: removeSessionSupabase,
+    reload: reloadSessions
+  } = useNirvanaSessions(currentDate);
 
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(weekStart + 'T12:00:00');
-      date.setDate(date.getDate() + i);
-      const dateString = date.toISOString().split('T')[0];
-      const entry = nirvanaSessionStorage.getByDate(dateString);
-      weekData[dateString] = entry?.sessions || [];
-    }
+  // Load weekly data
+  const { weeklyData: weeklyDataRaw, reload: reloadWeekly } = useNirvanaWeekly(weekStart);
 
-    setWeeklyData(weekData);
-  }, [currentDate]);
+  // Transform weekly data to match expected format
+  const weeklyData = useMemo(() => {
+    const transformed: { [key: string]: NirvanaSession[] } = {};
+    Object.entries(weeklyDataRaw).forEach(([date, data]) => {
+      transformed[date] = data.sessions;
+    });
+    return transformed;
+  }, [weeklyDataRaw]);
 
-  // Get the start of the week (Monday) for a given date
-  const getWeekStart = (date: string) => {
-    const d = new Date(date + 'T12:00:00');
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-    const monday = new Date(d.setDate(diff));
-    return monday.toISOString().split('T')[0];
-  };
+  // Load milestones
+  const {
+    milestones,
+    toggleMilestone: toggleMilestoneSupabase
+  } = useNirvanaMilestones();
 
-  useEffect(() => {
-    // Load session types
-    const types = nirvanaSessionTypesStorage.get();
-    setSessionTypes(types);
-
-    // Load today's sessions
-    loadSessions();
-
-    // Load weekly data
-    loadWeeklyData();
-
-    // Load progress data
-    loadProgress();
-  }, [currentDate, loadSessions, loadWeeklyData, loadProgress]);
+  // Load personal records
+  const {
+    personalRecords,
+    updatePersonalRecord: updatePersonalRecordSupabase
+  } = useNirvanaPersonalRecords();
   
   // Get all days in the current week (full week regardless of selected date)
   // const getCurrentWeekDays = () => {
@@ -112,23 +110,31 @@ export default function NirvanaPage() {
   };
   
   const isToday = timezoneStorage.isToday(currentDate);
-  
-  const addSession = (sessionType: string) => {
-    nirvanaSessionStorage.addSession(currentDate, sessionType);
-    loadSessions();
-    loadWeeklyData(); // Refresh weekly data
+
+  const addSession = async (sessionType: string) => {
+    try {
+      await addSessionSupabase(sessionType);
+      await reloadWeekly(); // Refresh weekly data
+    } catch (error) {
+      console.error('Error adding session:', error);
+      alert('Failed to add session. Please try again.');
+    }
   };
-  
-  const removeSession = (sessionId: string) => {
-    nirvanaSessionStorage.removeSession(currentDate, sessionId);
-    loadSessions();
-    loadWeeklyData(); // Refresh weekly data
+
+  const removeSession = async (sessionId: string) => {
+    try {
+      await removeSessionSupabase(sessionId);
+      await reloadWeekly(); // Refresh weekly data
+    } catch (error) {
+      console.error('Error removing session:', error);
+      alert('Failed to remove session. Please try again.');
+    }
   };
-  
+
   // Group sessions by type for display
   const sessionCounts: { [key: string]: number } = {};
   todaySessions.forEach(session => {
-    sessionCounts[session.sessionType] = (sessionCounts[session.sessionType] || 0) + 1;
+    sessionCounts[session.session_type] = (sessionCounts[session.session_type] || 0) + 1;
   });
   
   // Format time from timestamp
@@ -156,13 +162,13 @@ export default function NirvanaPage() {
   // Calculate weekly session counts by type
   const getWeeklySessionCounts = () => {
     const counts: { [key: string]: number } = {};
-    
+
     Object.values(weeklyData).forEach(daySessions => {
       daySessions.forEach(session => {
-        counts[session.sessionType] = (counts[session.sessionType] || 0) + 1;
+        counts[session.session_type] = (counts[session.session_type] || 0) + 1;
       });
     });
-    
+
     return counts;
   };
   
@@ -172,21 +178,29 @@ export default function NirvanaPage() {
   };
   
   // Progress tracking handlers
-  const toggleMilestone = (milestoneId: string) => {
+  const toggleMilestone = async (milestoneId: string) => {
     const milestone = milestones.find(m => m.id === milestoneId);
     if (milestone) {
-      nirvanaProgressStorage.updateMilestone(milestoneId, !milestone.completed);
-      loadProgress();
+      try {
+        await toggleMilestoneSupabase(milestoneId, !milestone.completed);
+      } catch (error) {
+        console.error('Error updating milestone:', error);
+        alert('Failed to update milestone. Please try again.');
+      }
     }
   };
-  
-  const updatePersonalRecord = (recordId: string) => {
+
+  const updatePersonalRecord = async (recordId: string) => {
     const value = parseFloat(recordValue);
     if (!isNaN(value) && value >= 0) {
-      nirvanaProgressStorage.updatePersonalRecord(recordId, value);
-      loadProgress();
-      setShowRecordModal(null);
-      setRecordValue('');
+      try {
+        await updatePersonalRecordSupabase(recordId, value);
+        setShowRecordModal(null);
+        setRecordValue('');
+      } catch (error) {
+        console.error('Error updating personal record:', error);
+        alert('Failed to update personal record. Please try again.');
+      }
     }
   };
   
@@ -332,9 +346,9 @@ export default function NirvanaPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      <span className="text-mm-white">{session.sessionType}</span>
+                      <span className="text-mm-white">{session.session_type}</span>
                       <span className="text-xs text-mm-gray">
-                        {formatTime(session.timestamp)}
+                        {formatTime(session.created_at)}
                       </span>
                     </div>
                     <button
@@ -452,7 +466,7 @@ export default function NirvanaPage() {
                                 ? 'bg-blue-500/20 text-blue-200'
                                 : 'bg-mm-dark text-mm-white'
                           }`}>
-                            {session.sessionType}
+                            {session.session_type}
                           </div>
                         ))
                       )}
