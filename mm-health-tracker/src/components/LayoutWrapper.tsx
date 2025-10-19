@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { AppShell } from '@/components/Navigation';
 
 interface LayoutWrapperProps {
@@ -8,7 +9,15 @@ interface LayoutWrapperProps {
 }
 
 export function LayoutWrapper({ children }: LayoutWrapperProps) {
-  // All routes use AppShell (no auth protection needed)
+  const pathname = usePathname();
+
+  // Hide navigation on Clerk authentication pages
+  const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up');
+
+  if (isAuthPage) {
+    return <>{children}</>;
+  }
+
   return (
     <AppShell>
       {children}
