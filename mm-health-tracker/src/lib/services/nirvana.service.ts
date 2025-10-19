@@ -96,21 +96,15 @@ export class NirvanaService {
 
     // Calculate week end date
     const start = new Date(weekStart + 'T12:00:00');
-    const promises = [];
 
+    // Process sequentially to avoid race conditions with entry creation
     for (let i = 0; i < 7; i++) {
       const date = new Date(start);
       date.setDate(start.getDate() + i);
       const dateString = date.toISOString().split('T')[0];
-      promises.push(
-        this.getByDate(dateString).then(data => ({ date: dateString, data }))
-      );
+      const data = await this.getByDate(dateString);
+      weekData[dateString] = data;
     }
-
-    const results = await Promise.all(promises);
-    results.forEach(({ date, data }) => {
-      weekData[date] = data;
-    });
 
     return weekData;
   }

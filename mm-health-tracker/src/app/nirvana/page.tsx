@@ -115,7 +115,7 @@ export default function NirvanaPage() {
   const addSession = async (sessionType: string) => {
     try {
       await addSessionSupabase(sessionType);
-      await reloadWeekly(); // Refresh weekly data
+      // No need to reload weekly - addSessionSupabase already updates local state
     } catch (error) {
       console.error('Error adding session:', error);
       alert('Failed to add session. Please try again.');
@@ -125,7 +125,7 @@ export default function NirvanaPage() {
   const removeSession = async (sessionId: string) => {
     try {
       await removeSessionSupabase(sessionId);
-      await reloadWeekly(); // Refresh weekly data
+      // No need to reload weekly - removeSessionSupabase already updates local state
     } catch (error) {
       console.error('Error removing session:', error);
       alert('Failed to remove session. Please try again.');

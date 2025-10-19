@@ -574,7 +574,7 @@ export default function DailyTrackerPage() {
                   >
                     Save Weekly Review
                   </button>
-                  {weeklyEntry.fridayReview && (
+                  {supabaseFridayReview && (
                     <button
                       onClick={() => setShowReviewForm(false)}
                       className="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 font-semibold rounded-full px-6 py-3 transition-colors"

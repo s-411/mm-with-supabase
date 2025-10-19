@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { profileStorage, dailyEntryStorage, calculations, nirvanaSessionStorage, bodyPartMappingStorage, sessionCorrelationStorage } from '@/lib/storage';
 import { UserProfile, NirvanaEntry, BodyPartUsage, CorrelationAnalysis } from '@/types';
 import { useMacroTargets } from '@/lib/hooks/useSettings';
+import { useDailyRange } from '@/lib/hooks/useDaily';
 import { formatDate } from '@/lib/dateUtils';
 import {
   LineChart,
@@ -74,13 +75,22 @@ export default function AnalyticsPage() {
   // Load macro targets from Supabase
   const { macroTargets } = useMacroTargets();
 
+  // Calculate date range for weight data from Supabase
+  const currentDate = new Date();
+  const startDate = new Date(currentDate);
+  startDate.setDate(startDate.getDate() - weightTimePeriod);
+  const { entries: supabaseEntries } = useDailyRange(
+    startDate.toISOString().split('T')[0],
+    currentDate.toISOString().split('T')[0]
+  );
+
   useEffect(() => {
     const existingProfile = profileStorage.get();
     setProfile(existingProfile);
 
     loadAnalyticsData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calorieBalancePeriod, weightTimePeriod]);
+  }, [calorieBalancePeriod, weightTimePeriod, supabaseEntries]);
 
   const loadAnalyticsData = () => {
     const data: AnalyticsData = {
@@ -118,22 +128,15 @@ export default function AnalyticsPage() {
       fat: parseInt(macroTargets.fat) || 0
     };
 
-    // Weight data (based on selected time period, default to 90 days for comprehensive view)
-    const weightPeriod = weightTimePeriod || 90;
-    for (let i = 0; i < weightPeriod; i++) {
-      const date = new Date(currentDate);
-      date.setDate(date.getDate() - i);
-      const dateString = date.toISOString().split('T')[0];
-      const entry = dailyEntryStorage.getByDate(dateString);
-
-      if (entry?.weight) {
-        data.weightData.unshift({
-          date: dateString,
-          weight: entry.weight,
-          label: formatDate(new Date(dateString + 'T12:00:00'))
-        });
-      }
-    }
+    // Weight data from Supabase (entries are already filtered by date range from hook)
+    data.weightData = supabaseEntries
+      .filter(entry => entry.weight_kg !== null && entry.weight_kg !== undefined)
+      .map(entry => ({
+        date: entry.date,
+        weight: entry.weight_kg!,
+        label: formatDate(new Date(entry.date + 'T12:00:00'))
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date)); // Sort chronologically
 
     // Calorie balance, deep work, and macro trends
     for (let i = 0; i < calorieBalancePeriod; i++) {
