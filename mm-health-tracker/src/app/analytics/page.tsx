@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { profileStorage, dailyEntryStorage, calculations, nirvanaSessionStorage, bodyPartMappingStorage, sessionCorrelationStorage } from '@/lib/storage';
 import { UserProfile, NirvanaEntry, BodyPartUsage, CorrelationAnalysis } from '@/types';
 import { useMacroTargets } from '@/lib/hooks/useSettings';
@@ -76,13 +76,22 @@ export default function AnalyticsPage() {
   const { macroTargets } = useMacroTargets();
 
   // Calculate date range for weight data from Supabase
-  const currentDate = new Date();
-  const startDate = new Date(currentDate);
-  startDate.setDate(startDate.getDate() - weightTimePeriod);
-  const { entries: supabaseEntries } = useDailyRange(
-    startDate.toISOString().split('T')[0],
-    currentDate.toISOString().split('T')[0]
-  );
+  // Use useMemo to ensure proper reactivity when weightTimePeriod changes
+  const { startDateStr, endDateStr } = useMemo(() => {
+    const today = new Date();
+    // Set to noon to avoid timezone issues
+    today.setHours(12, 0, 0, 0);
+
+    const start = new Date(today);
+    start.setDate(start.getDate() - weightTimePeriod);
+
+    return {
+      startDateStr: start.toISOString().split('T')[0],
+      endDateStr: today.toISOString().split('T')[0]
+    };
+  }, [weightTimePeriod]);
+
+  const { entries: supabaseEntries } = useDailyRange(startDateStr, endDateStr);
 
   useEffect(() => {
     const existingProfile = profileStorage.get();
@@ -129,13 +138,20 @@ export default function AnalyticsPage() {
     };
 
     // Weight data from Supabase (entries are already filtered by date range from hook)
-    data.weightData = supabaseEntries
+    // Deduplicate by date (keep most recent entry per date) and sort chronologically
+    const weightMap = new Map<string, { date: string; weight: number; label: string }>();
+
+    supabaseEntries
       .filter(entry => entry.weight !== null && entry.weight !== undefined)
-      .map(entry => ({
-        date: entry.date,
-        weight: entry.weight!,
-        label: formatDate(new Date(entry.date + 'T12:00:00'))
-      }))
+      .forEach(entry => {
+        weightMap.set(entry.date, {
+          date: entry.date,
+          weight: entry.weight!,
+          label: formatDate(new Date(entry.date + 'T12:00:00'))
+        });
+      });
+
+    data.weightData = Array.from(weightMap.values())
       .sort((a, b) => a.date.localeCompare(b.date)); // Sort chronologically
 
     // Calorie balance, deep work, and macro trends
@@ -676,6 +692,11 @@ export default function AnalyticsPage() {
                   timestamp: new Date(item.date + 'T12:00:00').getTime()
                 }));
 
+                // Calculate explicit domain boundaries based on the requested time period
+                // This ensures the timeline shows the full range, not just where data exists
+                const domainStart = new Date(startDateStr + 'T12:00:00').getTime();
+                const domainEnd = new Date(endDateStr + 'T12:00:00').getTime();
+
                 // Calculate trend lines
                 const linearTrendData = showLinearTrend ? calculateLinearTrend(chartData) : [];
                 const movingAvgWindow = Math.max(3, Math.floor(chartData.length / 10)); // Dynamic window size
@@ -755,7 +776,7 @@ export default function AnalyticsPage() {
                   dataKey="timestamp"
                   type="number"
                   scale="time"
-                  domain={['dataMin', 'dataMax']}
+                  domain={[domainStart, domainEnd]}
                   stroke="#ababab"
                   fontSize={12}
                   tickFormatter={(value) => {
