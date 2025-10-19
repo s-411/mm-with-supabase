@@ -10,6 +10,7 @@ import { Database } from '@/lib/supabase/database.types';
 type NirvanaSession = Database['public']['Tables']['nirvana_sessions']['Row'];
 type NirvanaMilestone = Database['public']['Tables']['nirvana_milestones']['Row'];
 type NirvanaPersonalRecord = Database['public']['Tables']['nirvana_personal_records']['Row'];
+type PersonalRecord = NirvanaPersonalRecord; // Alias for component use
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon,
@@ -213,8 +214,8 @@ export default function NirvanaPage() {
   };
   
   const formatRecordValue = (record: PersonalRecord) => {
-    if (record.value === 0) return 'Not set';
-    return `${record.value}${record.unit}`;
+    if (!record.value || record.value === 0) return 'Not set';
+    return `${record.value}${record.unit || ''}`;
   };
   
   const getDifficultyColor = (difficulty: string) => {
@@ -640,17 +641,17 @@ export default function NirvanaPage() {
                     {formatRecordValue(record)}
                   </div>
                   
-                  {record.value > 0 && (
+                  {record.value > 0 && record.record_date && (
                     <div className="text-xs text-mm-gray">
-                      Set: {new Date(record.recordDate).toLocaleDateString()}
+                      Set: {new Date(record.record_date).toLocaleDateString()}
                     </div>
                   )}
-                  
-                  {record.previousValue && record.previousValue > 0 && (
+
+                  {record.previous_value && record.previous_value > 0 && (
                     <div className="text-xs text-green-400 mt-1">
-                      Previous: {record.previousValue}{record.unit}
-                      {record.value > record.previousValue && (
-                        <span className="ml-1">↗ +{(record.value - record.previousValue).toFixed(1)}</span>
+                      Previous: {record.previous_value}{record.unit}
+                      {record.value > record.previous_value && (
+                        <span className="ml-1">↗ +{(record.value - record.previous_value).toFixed(1)}</span>
                       )}
                     </div>
                   )}

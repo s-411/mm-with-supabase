@@ -32,9 +32,9 @@ export class NirvanaService {
       .select('*')
       .eq('user_id', this.userId)
       .eq('date', date)
-      .single();
+      .maybeSingle();
 
-    if (entryError && entryError.code !== 'PGRST116') {
+    if (entryError) {
       throw new Error(`Failed to fetch nirvana entry: ${entryError.message}`);
     }
 
@@ -51,17 +51,34 @@ export class NirvanaService {
         .select()
         .single();
 
+      // Handle race condition - entry might have been created between our check and insert
       if (createError) {
-        throw new Error(`Failed to create nirvana entry: ${createError.message}`);
+        if (createError.code === '23505') { // Unique violation
+          // Try to fetch again
+          const { data: existingEntry } = await this.supabase
+            .from('nirvana_entries')
+            .select('*')
+            .eq('user_id', this.userId)
+            .eq('date', date)
+            .single();
+          nirvanaEntry = existingEntry;
+        } else {
+          throw new Error(`Failed to create nirvana entry: ${createError.message}`);
+        }
+      } else {
+        nirvanaEntry = newEntry;
       }
-      nirvanaEntry = newEntry;
     }
 
-    // Get sessions for this entry
+    // Get sessions for this entry (only if we have an entry)
+    if (!nirvanaEntry) {
+      return { entry: null, sessions: [] };
+    }
+
     const { data: sessions, error: sessionsError } = await this.supabase
       .from('nirvana_sessions')
       .select('*')
-      .eq('nirvana_entry_id', nirvanaEntry!.id)
+      .eq('nirvana_entry_id', nirvanaEntry.id)
       .order('created_at', { ascending: true });
 
     if (sessionsError) {

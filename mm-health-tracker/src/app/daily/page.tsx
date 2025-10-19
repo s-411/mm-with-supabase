@@ -75,6 +75,7 @@ export default function DailyTrackerPage() {
     updateObjectives: updateObjectivesSupabase,
     toggleObjectiveCompletion: toggleObjectiveSupabase,
     updateFridayReview: updateFridayReviewSupabase,
+    reload: reloadWeekly,
   } = useWeekly(weekStartDate);
 
   const [showMITForm, setShowMITForm] = useState(false);
