@@ -1,161 +1,233 @@
-import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase/client'
-import { useApp } from '@/lib/context-supabase'
-import { WeeklyService } from '@/lib/services/weekly.service'
-import { ProfileService } from '@/lib/services/profile.service'
-import type { Database } from '@/lib/supabase/database.types'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase/client';
+import { useApp } from '@/lib/context-supabase';
+import { WeeklyService } from '@/lib/services/weekly.service';
+import { ProfileService } from '@/lib/services/profile.service';
+import { queryKeys } from '@/lib/query-keys';
+import type { Database } from '@/lib/supabase/database.types';
 
-type WeeklyEntry = Database['public']['Tables']['weekly_entries']['Row']
+type WeeklyEntry = Database['public']['Tables']['weekly_entries']['Row'];
 
-interface WeeklyObjective {
-  id: string
-  objective: string
-  completed: boolean
-  order: number
+export interface WeeklyObjective {
+  id: string;
+  objective: string;
+  completed: boolean;
+  order: number;
 }
 
-interface UseWeeklyReturn {
-  entry: WeeklyEntry | null
-  objectives: WeeklyObjective[]
-  whyImportant: string | null
-  fridayReview: string | null
-  reviewCompleted: boolean
-  loading: boolean
-  error: string | null
-  updateObjectives: (
-    objectives: WeeklyObjective[],
-    whyImportant: string
-  ) => Promise<WeeklyEntry>
-  toggleObjectiveCompletion: (objectiveId: string) => Promise<WeeklyEntry>
-  updateFridayReview: (review: string) => Promise<WeeklyEntry>
-  reload: () => Promise<void>
+/**
+ * Helper to get WeeklyService instance
+ */
+async function getWeeklyService(userId: string): Promise<WeeklyService> {
+  const profileService = new ProfileService(supabase);
+  const profile = await profileService.get(userId);
+  if (!profile) throw new Error('Profile not found');
+  return new WeeklyService(supabase, profile.id);
 }
+
+/**
+ * Parse objectives from JSONB to typed array
+ */
+function parseObjectives(entry: WeeklyEntry | null): WeeklyObjective[] {
+  if (!entry?.objectives) return [];
+  return (entry.objectives as any[]).map((obj: any) => ({
+    id: obj.id,
+    objective: obj.objective,
+    completed: obj.completed,
+    order: obj.order,
+  }));
+}
+
+// ============================================
+// QUERY HOOK - Fetches weekly data
+// ============================================
 
 /**
  * Hook for managing weekly objectives and reviews
  * @param weekStartDate - Monday's date in YYYY-MM-DD format
  */
-export function useWeekly(weekStartDate: string): UseWeeklyReturn {
-  const { user } = useApp()
+export function useWeekly(weekStartDate: string) {
+  const { user } = useApp();
 
-  const [entry, setEntry] = useState<WeeklyEntry | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: entry, isLoading, error } = useQuery({
+    queryKey: queryKeys.weekly.byWeek(weekStartDate),
+    queryFn: async (): Promise<WeeklyEntry | null> => {
+      if (!user?.id) throw new Error('Not authenticated');
 
-  const getWeeklyService = useCallback(async () => {
-    if (!user?.id) throw new Error('Not authenticated')
-
-    // Just use the standard supabase client - no token needed
-    const profileService = new ProfileService(supabase)
-    const profile = await profileService.get(user.id)
-
-    if (!profile) throw new Error('Profile not found')
-
-    return new WeeklyService(supabase, profile.id)
-  }, [user?.id])
-
-  const loadWeeklyEntry = useCallback(async () => {
-    if (!user?.id) {
-      setEntry(null)
-      setLoading(false)
-      return
-    }
-
-    try {
-      setLoading(true)
-      setError(null)
-
-      const weeklyService = await getWeeklyService()
-      const data = await weeklyService.getByWeekStart(weekStartDate)
-
-      setEntry(data)
-    } catch (err) {
-      console.error('Error loading weekly entry:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load weekly entry')
-    } finally {
-      setLoading(false)
-    }
-  }, [weekStartDate, getWeeklyService, user?.id])
-
-  useEffect(() => {
-    loadWeeklyEntry()
-  }, [loadWeeklyEntry])
-
-  const updateObjectives = useCallback(
-    async (objectives: WeeklyObjective[], whyImportant: string) => {
-      try {
-        const weeklyService = await getWeeklyService()
-        const updatedEntry = await weeklyService.upsert(weekStartDate, {
-          objectives: objectives as any,
-          why_important: whyImportant,
-        })
-
-        setEntry(updatedEntry)
-        return updatedEntry
-      } catch (err) {
-        console.error('Error updating objectives:', err)
-        throw err
-      }
+      const weeklyService = await getWeeklyService(user.id);
+      return weeklyService.getByWeekStart(weekStartDate);
     },
-    [weekStartDate, getWeeklyService]
-  )
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
-  const toggleObjectiveCompletion = useCallback(
-    async (objectiveId: string) => {
-      try {
-        const weeklyService = await getWeeklyService()
-        const updatedEntry = await weeklyService.toggleObjectiveCompletion(
-          weekStartDate,
-          objectiveId
-        )
-
-        setEntry(updatedEntry)
-        return updatedEntry
-      } catch (err) {
-        console.error('Error toggling objective:', err)
-        throw err
-      }
-    },
-    [weekStartDate, getWeeklyService]
-  )
-
-  const updateFridayReview = useCallback(
-    async (review: string) => {
-      try {
-        const weeklyService = await getWeeklyService()
-        const updatedEntry = await weeklyService.updateFridayReview(weekStartDate, review)
-
-        setEntry(updatedEntry)
-        return updatedEntry
-      } catch (err) {
-        console.error('Error updating Friday review:', err)
-        throw err
-      }
-    },
-    [weekStartDate, getWeeklyService]
-  )
-
-  // Parse objectives from JSONB
-  const objectives: WeeklyObjective[] = entry?.objectives
-    ? (entry.objectives as any[]).map((obj: any) => ({
-        id: obj.id,
-        objective: obj.objective,
-        completed: obj.completed,
-        order: obj.order,
-      }))
-    : []
+  const objectives = parseObjectives(entry ?? null);
 
   return {
-    entry,
+    entry: entry ?? null,
     objectives,
-    whyImportant: entry?.why_important || null,
-    fridayReview: entry?.friday_review || null,
-    reviewCompleted: entry?.review_completed || false,
-    loading,
-    error,
-    updateObjectives,
-    toggleObjectiveCompletion,
-    updateFridayReview,
-    reload: loadWeeklyEntry,
-  }
+    whyImportant: entry?.why_important ?? null,
+    fridayReview: entry?.friday_review ?? null,
+    reviewCompleted: entry?.review_completed ?? false,
+    loading: isLoading,
+    error: error?.message ?? null,
+  };
+}
+
+// ============================================
+// MUTATION HOOKS - Weekly Operations
+// ============================================
+
+/**
+ * Update weekly objectives with optimistic update
+ */
+export function useUpdateWeeklyObjectives(weekStartDate: string) {
+  const queryClient = useQueryClient();
+  const { user } = useApp();
+
+  return useMutation({
+    mutationFn: async ({
+      objectives,
+      whyImportant,
+    }: {
+      objectives: WeeklyObjective[];
+      whyImportant: string;
+    }) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const weeklyService = await getWeeklyService(user.id);
+      return weeklyService.upsert(weekStartDate, {
+        objectives: objectives as any,
+        why_important: whyImportant,
+      });
+    },
+
+    onMutate: async ({ objectives, whyImportant }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.weekly.byWeek(weekStartDate) });
+      const previous = queryClient.getQueryData<WeeklyEntry>(queryKeys.weekly.byWeek(weekStartDate));
+
+      queryClient.setQueryData<WeeklyEntry>(queryKeys.weekly.byWeek(weekStartDate), (old) => {
+        if (!old) {
+          // Create a temporary entry if none exists
+          return {
+            id: `temp-${Date.now()}`,
+            week_start: weekStartDate,
+            profile_id: user?.id ?? '',
+            objectives: objectives as any,
+            why_important: whyImportant,
+            friday_review: null,
+            review_completed: false,
+            created_at: new Date().toISOString(),
+          } as WeeklyEntry;
+        }
+        return {
+          ...old,
+          objectives: objectives as any,
+          why_important: whyImportant,
+        };
+      });
+
+      return { previous };
+    },
+
+    onError: (err, variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.weekly.byWeek(weekStartDate), context.previous);
+      }
+      console.error('Failed to update objectives:', err);
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.weekly.byWeek(weekStartDate) });
+    },
+  });
+}
+
+/**
+ * Toggle objective completion with optimistic update
+ */
+export function useToggleWeeklyObjective(weekStartDate: string) {
+  const queryClient = useQueryClient();
+  const { user } = useApp();
+
+  return useMutation({
+    mutationFn: async (objectiveId: string) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const weeklyService = await getWeeklyService(user.id);
+      return weeklyService.toggleObjectiveCompletion(weekStartDate, objectiveId);
+    },
+
+    onMutate: async (objectiveId) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.weekly.byWeek(weekStartDate) });
+      const previous = queryClient.getQueryData<WeeklyEntry>(queryKeys.weekly.byWeek(weekStartDate));
+
+      queryClient.setQueryData<WeeklyEntry>(queryKeys.weekly.byWeek(weekStartDate), (old) => {
+        if (!old || !old.objectives) return old;
+
+        const updatedObjectives = (old.objectives as any[]).map((obj: any) =>
+          obj.id === objectiveId ? { ...obj, completed: !obj.completed } : obj
+        );
+
+        return {
+          ...old,
+          objectives: updatedObjectives as any,
+        };
+      });
+
+      return { previous };
+    },
+
+    onError: (err, objectiveId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.weekly.byWeek(weekStartDate), context.previous);
+      }
+      console.error('Failed to toggle objective:', err);
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.weekly.byWeek(weekStartDate) });
+    },
+  });
+}
+
+/**
+ * Update Friday review with optimistic update
+ */
+export function useUpdateFridayReview(weekStartDate: string) {
+  const queryClient = useQueryClient();
+  const { user } = useApp();
+
+  return useMutation({
+    mutationFn: async (review: string) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const weeklyService = await getWeeklyService(user.id);
+      return weeklyService.updateFridayReview(weekStartDate, review);
+    },
+
+    onMutate: async (review) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.weekly.byWeek(weekStartDate) });
+      const previous = queryClient.getQueryData<WeeklyEntry>(queryKeys.weekly.byWeek(weekStartDate));
+
+      queryClient.setQueryData<WeeklyEntry>(queryKeys.weekly.byWeek(weekStartDate), (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          friday_review: review,
+          review_completed: true,
+        };
+      });
+
+      return { previous };
+    },
+
+    onError: (err, review, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.weekly.byWeek(weekStartDate), context.previous);
+      }
+      console.error('Failed to update Friday review:', err);
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.weekly.byWeek(weekStartDate) });
+    },
+  });
 }

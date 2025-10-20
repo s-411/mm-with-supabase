@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppProvider } from '@/lib/context-supabase';
+import { QueryProvider } from '@/lib/providers/query-provider';
 import { LayoutWrapper } from '@/components/LayoutWrapper';
 import { ErrorBoundary, DevelopmentErrorDisplay } from '@/components/ErrorBoundary';
 
@@ -23,11 +24,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="bg-mm-dark text-mm-white" suppressHydrationWarning>
         <ErrorBoundary>
-          <AppProvider>
-            <LayoutWrapper>
-              {children}
-            </LayoutWrapper>
-          </AppProvider>
+          <QueryProvider>
+            <AppProvider>
+              <LayoutWrapper>
+                {children}
+              </LayoutWrapper>
+            </AppProvider>
+          </QueryProvider>
           <DevelopmentErrorDisplay />
         </ErrorBoundary>
       </body>

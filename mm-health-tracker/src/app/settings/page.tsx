@@ -3,7 +3,21 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useProfile, useApp } from '@/lib/context-supabase';
-import { useCompounds, useFoodTemplates, useNirvanaSessionTypes, useMacroTargets, useTrackerSettings } from '@/lib/hooks/useSettings';
+import {
+  useCompounds,
+  useAddCompound,
+  useRemoveCompound,
+  useFoodTemplates,
+  useAddFoodTemplate,
+  useRemoveFoodTemplate,
+  useNirvanaSessionTypes,
+  useAddNirvanaSessionType,
+  useRemoveNirvanaSessionType,
+  useMacroTargets,
+  useUpdateMacroTargets,
+  useTrackerSettings,
+  useUpdateTrackerSettings
+} from '@/lib/hooks/useSettings';
 import type { Database } from '@/lib/supabase/database.types';
 import { profileStorage, dataExport, compoundStorage, foodTemplateStorage, FoodTemplate, injectionTargetStorage, nirvanaSessionTypesStorage, timezoneStorage } from '@/lib/storage';
 import { useWinnersBibleImages } from '@/lib/hooks/useWinnersBible';
@@ -44,11 +58,23 @@ function SettingsPageContent() {
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Supabase hooks for settings
-  const { compounds, addCompound: addCompoundToSupabase, removeCompound: removeCompoundFromSupabase } = useCompounds();
-  const { templates: foodTemplates, addTemplate: addTemplateToSupabase, removeTemplate: removeTemplateFromSupabase } = useFoodTemplates();
-  const { sessionTypes: nirvanaSessionTypes, addSessionType: addSessionTypeToSupabase, removeSessionType: removeSessionTypeFromSupabase } = useNirvanaSessionTypes();
-  const { macroTargets: supabaseMacroTargets, updateMacroTargets: updateSupabaseMacroTargets } = useMacroTargets();
-  const { trackerSettings: supabaseTrackerSettings, updateTrackerSettings: updateSupabaseTrackerSettings } = useTrackerSettings();
+  const { compounds } = useCompounds();
+  const addCompoundMutation = useAddCompound();
+  const removeCompoundMutation = useRemoveCompound();
+
+  const { templates: foodTemplates } = useFoodTemplates();
+  const addTemplateMutation = useAddFoodTemplate();
+  const removeTemplateMutation = useRemoveFoodTemplate();
+
+  const { sessionTypes: nirvanaSessionTypes } = useNirvanaSessionTypes();
+  const addSessionTypeMutation = useAddNirvanaSessionType();
+  const removeSessionTypeMutation = useRemoveNirvanaSessionType();
+
+  const { macroTargets: supabaseMacroTargets } = useMacroTargets();
+  const updateMacroTargetsMutation = useUpdateMacroTargets();
+
+  const { trackerSettings: supabaseTrackerSettings } = useTrackerSettings();
+  const updateTrackerSettingsMutation = useUpdateTrackerSettings();
   const { images: winnersBibleImages, uploadImage, deleteImage, loading: winnersBibleLoading } = useWinnersBibleImages();
 
   const [newCompound, setNewCompound] = useState('');
@@ -176,15 +202,17 @@ function SettingsPageContent() {
     }
   };
 
-  const addCompound = async () => {
+  const addCompound = () => {
     if (newCompound.trim() && !compounds.some(c => c.name === newCompound.trim())) {
-      try {
-        await addCompoundToSupabase(newCompound.trim());
-        setNewCompound('');
-      } catch (error) {
-        console.error('Error adding compound:', error);
-        alert('Failed to add compound. Please try again.');
-      }
+      addCompoundMutation.mutate(newCompound.trim(), {
+        onSuccess: () => {
+          setNewCompound('');
+        },
+        onError: (error) => {
+          console.error('Error adding compound:', error);
+          alert('Failed to add compound. Please try again.');
+        },
+      });
     }
   };
 
@@ -193,49 +221,56 @@ function SettingsPageContent() {
     confirmDeleteCompound(compoundId);
   };
 
-  const confirmDeleteCompound = async (compoundId: string) => {
-    try {
-      await removeCompoundFromSupabase(compoundId);
-      setShowDeleteWarning(null);
-    } catch (error) {
-      console.error('Error removing compound:', error);
-      alert('Failed to remove compound. Please try again.');
-    }
+  const confirmDeleteCompound = (compoundId: string) => {
+    removeCompoundMutation.mutate(compoundId, {
+      onSuccess: () => {
+        setShowDeleteWarning(null);
+      },
+      onError: (error) => {
+        console.error('Error removing compound:', error);
+        alert('Failed to remove compound. Please try again.');
+      },
+    });
   };
 
-  const addTemplate = async () => {
+  const addTemplate = () => {
     if (newTemplate.name.trim() && newTemplate.calories.trim()) {
-      try {
-        await addTemplateToSupabase({
+      addTemplateMutation.mutate(
+        {
           name: newTemplate.name.trim(),
           calories: parseInt(newTemplate.calories) || 0,
           carbs: parseInt(newTemplate.carbs) || 0,
           protein: parseInt(newTemplate.protein) || 0,
           fat: parseInt(newTemplate.fat) || 0
-        });
-        setNewTemplate({ name: '', calories: '', carbs: '', protein: '', fat: '' });
-        setShowTemplateForm(false);
-      } catch (error) {
-        console.error('Error adding food template:', error);
-        alert('Failed to add food template. Please try again.');
-      }
+        },
+        {
+          onSuccess: () => {
+            setNewTemplate({ name: '', calories: '', carbs: '', protein: '', fat: '' });
+            setShowTemplateForm(false);
+          },
+          onError: (error) => {
+            console.error('Error adding food template:', error);
+            alert('Failed to add food template. Please try again.');
+          },
+        }
+      );
     }
   };
 
-  const removeTemplate = async (templateId: string) => {
-    try {
-      await removeTemplateFromSupabase(templateId);
-    } catch (error) {
-      console.error('Error removing food template:', error);
-      alert('Failed to remove food template. Please try again.');
-    }
+  const removeTemplate = (templateId: string) => {
+    removeTemplateMutation.mutate(templateId, {
+      onError: (error) => {
+        console.error('Error removing food template:', error);
+        alert('Failed to remove food template. Please try again.');
+      },
+    });
   };
 
   const updateDailyTrackerSetting = async (key: string, value: boolean) => {
     const updated = { ...dailyTrackerSettings, [key]: value };
     setDailyTrackerSettings(updated);
     try {
-      await updateSupabaseTrackerSettings(updated);
+      updateTrackerSettingsMutation.mutate(updated);
     } catch (error) {
       console.error('Error updating tracker setting:', error);
       alert('Failed to save tracker setting. Please try again.');
@@ -253,7 +288,7 @@ function SettingsPageContent() {
     };
     setDailyTrackerSettings(updated);
     try {
-      await updateSupabaseTrackerSettings(updated);
+      updateTrackerSettingsMutation.mutate(updated);
     } catch (error) {
       console.error('Error toggling custom metric:', error);
       alert('Failed to update custom metric. Please try again.');
@@ -268,7 +303,7 @@ function SettingsPageContent() {
 
   const saveMacroTargets = async () => {
     try {
-      await updateSupabaseMacroTargets(localMacroTargets);
+      updateMacroTargetsMutation.mutate(localMacroTargets);
       setMacroTargetsChanged(false);
       alert('Macro targets saved successfully!');
     } catch (error) {
@@ -325,7 +360,7 @@ function SettingsPageContent() {
   const addSessionType = async () => {
     if (newSessionType.trim() && !nirvanaSessionTypes.some(st => st.name === newSessionType.trim())) {
       try {
-        await addSessionTypeToSupabase(newSessionType.trim());
+        addSessionTypeMutation.mutate(newSessionType.trim());
         setNewSessionType('');
       } catch (error) {
         console.error('Error adding session type:', error);
@@ -336,7 +371,7 @@ function SettingsPageContent() {
 
   const removeSessionType = async (sessionTypeId: string) => {
     try {
-      await removeSessionTypeFromSupabase(sessionTypeId);
+      removeSessionTypeMutation.mutate(sessionTypeId);
     } catch (error) {
       console.error('Error removing session type:', error);
       alert('Failed to remove session type. Please try again.');

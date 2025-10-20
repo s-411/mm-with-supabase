@@ -4,9 +4,21 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { profileStorage, dailyEntryStorage, generateId, weeklyEntryStorage, getWeekStartDate, getDayOfWeek, timezoneStorage, nirvanaSessionStorage } from '@/lib/storage';
 import { DailyEntry, UserProfile, MITEntry, WeeklyEntry, WeeklyObjective } from '@/types';
 import { useMacroTargets } from '@/lib/hooks/useSettings';
-import { useDaily } from '@/lib/hooks/useDaily';
+import {
+  useDaily,
+  useUpdateWeight,
+  useToggleDeepWork,
+  useAddMIT,
+  useDeleteMIT,
+  useToggleMIT
+} from '@/lib/hooks/useDaily';
 import { useInjections } from '@/lib/hooks/useInjections';
-import { useWeekly } from '@/lib/hooks/useWeekly';
+import {
+  useWeekly,
+  useUpdateWeeklyObjectives,
+  useToggleWeeklyObjective,
+  useUpdateFridayReview
+} from '@/lib/hooks/useWeekly';
 import { formatDateLong } from '@/lib/dateUtils';
 import {
   CalendarDaysIcon,
@@ -41,11 +53,12 @@ export default function DailyTrackerPage() {
     calories: supabaseCalories,
     exercises: supabaseExercises,
     mits: todayMITs,
-    updateWeight: updateWeightSupabase,
-    toggleDeepWork: toggleDeepWorkSupabase,
-    toggleMIT: toggleTodayMITSupabase,
-    reload: reloadDaily,
   } = useDaily(currentDate);
+
+  // Mutation hooks for daily data
+  const updateWeightMutation = useUpdateWeight(currentDate);
+  const toggleDeepWorkMutation = useToggleDeepWork(currentDate);
+  const toggleTodayMITMutation = useToggleMIT(currentDate);
 
   // Calculate tomorrow's date for MIT planning
   const tomorrowDate = React.useMemo(() => {
@@ -55,11 +68,11 @@ export default function DailyTrackerPage() {
   }, [currentDate]);
 
   // Load tomorrow's MITs from Supabase
-  const {
-    mits: tomorrowMITs,
-    addMIT: addMITSupabase,
-    deleteMIT: deleteMITSupabase,
-  } = useDaily(tomorrowDate);
+  const { mits: tomorrowMITs } = useDaily(tomorrowDate);
+
+  // Mutation hooks for tomorrow's MITs
+  const addMITMutation = useAddMIT(tomorrowDate);
+  const deleteMITMutation = useDeleteMIT(tomorrowDate);
 
   // Load injections for current date from Supabase
   const { injections: supabaseInjections } = useInjections(currentDate, currentDate);
@@ -72,11 +85,12 @@ export default function DailyTrackerPage() {
     objectives: supabaseObjectives,
     whyImportant: supabaseWhyImportant,
     fridayReview: supabaseFridayReview,
-    updateObjectives: updateObjectivesSupabase,
-    toggleObjectiveCompletion: toggleObjectiveSupabase,
-    updateFridayReview: updateFridayReviewSupabase,
-    reload: reloadWeekly,
   } = useWeekly(weekStartDate);
+
+  // Mutation hooks for weekly data
+  const updateObjectivesMutation = useUpdateWeeklyObjectives(weekStartDate);
+  const toggleObjectiveMutation = useToggleWeeklyObjective(weekStartDate);
+  const updateFridayReviewMutation = useUpdateFridayReview(weekStartDate);
 
   const [showMITForm, setShowMITForm] = useState(false);
   const [mitInput, setMitInput] = useState('');
@@ -180,35 +194,30 @@ export default function DailyTrackerPage() {
     setCurrentDate(date.toISOString().split('T')[0]);
   };
 
-  const updateWeight = async () => {
+  const updateWeight = () => {
     const weight = parseFloat(weightInput);
     if (!isNaN(weight) && weight > 0) {
-      try {
-        // Update weight in Supabase
-        await updateWeightSupabase(weight);
-
-        // Reload data to reflect the change
-        await reloadDaily();
-
-        setShowWeightForm(false);
-      } catch (error) {
-        console.error('Error updating weight:', error);
-        alert('Failed to update weight. Please try again.');
-      }
+      // Update weight in Supabase with optimistic update
+      updateWeightMutation.mutate(weight, {
+        onSuccess: () => {
+          setShowWeightForm(false);
+        },
+        onError: (error) => {
+          console.error('Error updating weight:', error);
+          alert('Failed to update weight. Please try again.');
+        },
+      });
     }
   };
 
-  const toggleDeepWork = async () => {
-    try {
-      // Toggle deep work in Supabase
-      await toggleDeepWorkSupabase();
-
-      // Reload data to reflect the change
-      await reloadDaily();
-    } catch (error) {
-      console.error('Error toggling deep work:', error);
-      alert('Failed to toggle deep work. Please try again.');
-    }
+  const toggleDeepWork = () => {
+    // Toggle deep work in Supabase with optimistic update
+    toggleDeepWorkMutation.mutate(undefined, {
+      onError: (error) => {
+        console.error('Error toggling deep work:', error);
+        alert('Failed to toggle deep work. Please try again.');
+      },
+    });
   };
 
   const handleWinnersBibleView = () => {
@@ -216,42 +225,46 @@ export default function DailyTrackerPage() {
     window.location.href = '/winners-bible';
   };
 
-  const addMIT = async () => {
+  const addMIT = () => {
     if (mitInput.trim()) {
-      try {
-        // Add MIT to Supabase
-        await addMITSupabase(mitInput.trim(), tomorrowMITs.length);
-
-        setMitInput('');
-      } catch (error) {
-        console.error('Error adding MIT:', error);
-        alert('Failed to add MIT. Please try again.');
-      }
+      // Add MIT to Supabase with optimistic update
+      addMITMutation.mutate(
+        { taskDescription: mitInput.trim(), orderIndex: tomorrowMITs.length },
+        {
+          onSuccess: () => {
+            setMitInput('');
+          },
+          onError: (error) => {
+            console.error('Error adding MIT:', error);
+            alert('Failed to add MIT. Please try again.');
+          },
+        }
+      );
     }
   };
 
-  const removeMIT = async (mitId: string) => {
-    try {
-      // Delete MIT from Supabase
-      await deleteMITSupabase(mitId);
-    } catch (error) {
-      console.error('Error removing MIT:', error);
-      alert('Failed to remove MIT. Please try again.');
-    }
+  const removeMIT = (mitId: string) => {
+    // Delete MIT from Supabase with optimistic update
+    deleteMITMutation.mutate(mitId, {
+      onError: (error) => {
+        console.error('Error removing MIT:', error);
+        alert('Failed to remove MIT. Please try again.');
+      },
+    });
   };
 
-  const toggleTodayMIT = async (mitId: string) => {
-    try {
-      // Toggle MIT in Supabase
-      await toggleTodayMITSupabase(mitId);
-    } catch (error) {
-      console.error('Error toggling MIT:', error);
-      alert('Failed to toggle MIT. Please try again.');
-    }
+  const toggleTodayMIT = (mitId: string) => {
+    // Toggle MIT in Supabase with optimistic update
+    toggleTodayMITMutation.mutate(mitId, {
+      onError: (error) => {
+        console.error('Error toggling MIT:', error);
+        alert('Failed to toggle MIT. Please try again.');
+      },
+    });
   };
 
   // Weekly objectives functions
-  const saveWeeklyObjectives = async () => {
+  const saveWeeklyObjectives = () => {
     const objectives: WeeklyObjective[] = objectiveInputs
       .filter(input => input.trim())
       .map((objective, index) => ({
@@ -261,18 +274,19 @@ export default function DailyTrackerPage() {
         order: index
       }));
 
-    try {
-      // Save to Supabase
-      await updateObjectivesSupabase(objectives, whyInput.trim());
-
-      // Reload weekly data to reflect the change
-      await reloadWeekly();
-
-      setShowWeeklyForm(false);
-    } catch (error) {
-      console.error('Error saving weekly objectives:', error);
-      alert('Failed to save weekly objectives. Please try again.');
-    }
+    // Save to Supabase with optimistic update
+    updateObjectivesMutation.mutate(
+      { objectives, whyImportant: whyInput.trim() },
+      {
+        onSuccess: () => {
+          setShowWeeklyForm(false);
+        },
+        onError: (error) => {
+          console.error('Error saving weekly objectives:', error);
+          alert('Failed to save weekly objectives. Please try again.');
+        },
+      }
+    );
   };
 
   const updateObjectiveInput = (index: number, value: string) => {
@@ -281,32 +295,27 @@ export default function DailyTrackerPage() {
     setObjectiveInputs(newInputs);
   };
 
-  const toggleWeeklyObjective = async (objectiveId: string) => {
-    try {
-      // Toggle in Supabase
-      await toggleObjectiveSupabase(objectiveId);
-
-      // Reload weekly data to reflect the change
-      await reloadWeekly();
-    } catch (error) {
-      console.error('Error toggling objective:', error);
-      alert('Failed to toggle objective. Please try again.');
-    }
+  const toggleWeeklyObjective = (objectiveId: string) => {
+    // Toggle in Supabase with optimistic update
+    toggleObjectiveMutation.mutate(objectiveId, {
+      onError: (error) => {
+        console.error('Error toggling objective:', error);
+        alert('Failed to toggle objective. Please try again.');
+      },
+    });
   };
 
-  const saveFridayReview = async () => {
-    try {
-      // Save to Supabase
-      await updateFridayReviewSupabase(reviewInput.trim());
-
-      // Reload weekly data to reflect the change
-      await reloadWeekly();
-
-      setShowReviewForm(false); // Close the form after saving
-    } catch (error) {
-      console.error('Error saving Friday review:', error);
-      alert('Failed to save Friday review. Please try again.');
-    }
+  const saveFridayReview = () => {
+    // Save to Supabase with optimistic update
+    updateFridayReviewMutation.mutate(reviewInput.trim(), {
+      onSuccess: () => {
+        setShowReviewForm(false); // Close the form after saving
+      },
+      onError: (error) => {
+        console.error('Error saving Friday review:', error);
+        alert('Failed to save Friday review. Please try again.');
+      },
+    });
   };
 
   const isToday = timezoneStorage.isToday(currentDate);

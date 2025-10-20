@@ -3,7 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { timezoneStorage } from '@/lib/storage';
 import { useMacroTargets, useFoodTemplates } from '@/lib/hooks/useSettings';
-import { useDaily, useDailyRange } from '@/lib/hooks/useDaily';
+import {
+  useDaily,
+  useDailyRange,
+  useAddCalorieEntry,
+  useDeleteCalorieEntry,
+  useAddExerciseEntry,
+  useDeleteExerciseEntry
+} from '@/lib/hooks/useDaily';
 import { useProfile } from '@/lib/context-supabase';
 import { formatDateForDisplay, formatDateLong } from '@/lib/dateUtils';
 import { PlusIcon, XMarkIcon, RectangleStackIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
@@ -20,11 +27,13 @@ export default function CaloriesPage() {
   const {
     calories: todayCalories,
     exercises: todayExercises,
-    addCalorieEntry: addCalorieToSupabase,
-    removeCalorieEntry: removeCalorieFromSupabase,
-    addExerciseEntry: addExerciseToSupabase,
-    removeExerciseEntry: removeExerciseFromSupabase,
   } = useDaily(currentDate);
+
+  // Mutation hooks for calories and exercises
+  const addCalorieMutation = useAddCalorieEntry(currentDate);
+  const deleteCalorieMutation = useDeleteCalorieEntry(currentDate);
+  const addExerciseMutation = useAddExerciseEntry(currentDate);
+  const deleteExerciseMutation = useDeleteExerciseEntry(currentDate);
 
   // Load food templates from Supabase
   const { templates: foodTemplates } = useFoodTemplates();
@@ -186,83 +195,95 @@ export default function CaloriesPage() {
     fat: parseInt(macroTargets.fat) || 0
   };
 
-  const addCalorieEntry = async () => {
+  const addCalorieEntry = () => {
     if (!calorieInput.calories || parseInt(calorieInput.calories) <= 0) return;
 
-    try {
-      await addCalorieToSupabase({
+    addCalorieMutation.mutate(
+      {
         food_name: calorieInput.name || 'Unnamed Food',
         calories: parseInt(calorieInput.calories),
         carbs: parseInt(calorieInput.carbs || '0'),
         protein: parseInt(calorieInput.protein || '0'),
         fat: parseInt(calorieInput.fat || '0'),
-      });
-
-      setCalorieInput({ name: '', calories: '', carbs: '', protein: '', fat: '' });
-      setShowCalorieForm(false);
-    } catch (error) {
-      console.error('Error adding calorie entry:', error);
-      alert('Failed to add calorie entry. Please try again.');
-    }
+      },
+      {
+        onSuccess: () => {
+          setCalorieInput({ name: '', calories: '', carbs: '', protein: '', fat: '' });
+          setShowCalorieForm(false);
+        },
+        onError: (error) => {
+          console.error('Error adding calorie entry:', error);
+          alert('Failed to add calorie entry. Please try again.');
+        },
+      }
+    );
   };
 
-  const addTemplatedFood = async () => {
+  const addTemplatedFood = () => {
     if (!selectedTemplate || !templateQuantity || parseInt(templateQuantity) <= 0) return;
 
     const quantity = parseInt(templateQuantity);
-    try {
-      await addCalorieToSupabase({
+    addCalorieMutation.mutate(
+      {
         food_name: `${selectedTemplate.name} (${quantity}x)`,
         calories: Number(selectedTemplate.calories) * quantity,
         carbs: Number(selectedTemplate.carbs) * quantity,
         protein: Number(selectedTemplate.protein) * quantity,
         fat: Number(selectedTemplate.fat) * quantity,
-      });
-
-      setSelectedTemplate(null);
-      setTemplateQuantity('1');
-      setShowTemplateForm(false);
-    } catch (error) {
-      console.error('Error adding templated food:', error);
-      alert('Failed to add templated food. Please try again.');
-    }
+      },
+      {
+        onSuccess: () => {
+          setSelectedTemplate(null);
+          setTemplateQuantity('1');
+          setShowTemplateForm(false);
+        },
+        onError: (error) => {
+          console.error('Error adding templated food:', error);
+          alert('Failed to add templated food. Please try again.');
+        },
+      }
+    );
   };
 
-  const addExerciseEntry = async () => {
+  const addExerciseEntry = () => {
     if (!exerciseInput.duration || !exerciseInput.caloriesBurned ||
         parseInt(exerciseInput.duration) <= 0 || parseInt(exerciseInput.caloriesBurned) <= 0) return;
 
-    try {
-      await addExerciseToSupabase({
+    addExerciseMutation.mutate(
+      {
         exercise_type: exerciseInput.type || 'Unnamed Exercise',
         duration_minutes: parseInt(exerciseInput.duration),
         calories_burned: parseInt(exerciseInput.caloriesBurned),
-      });
-
-      setExerciseInput({ type: '', duration: '', caloriesBurned: '' });
-      setShowExerciseForm(false);
-    } catch (error) {
-      console.error('Error adding exercise entry:', error);
-      alert('Failed to add exercise entry. Please try again.');
-    }
+      },
+      {
+        onSuccess: () => {
+          setExerciseInput({ type: '', duration: '', caloriesBurned: '' });
+          setShowExerciseForm(false);
+        },
+        onError: (error) => {
+          console.error('Error adding exercise entry:', error);
+          alert('Failed to add exercise entry. Please try again.');
+        },
+      }
+    );
   };
 
-  const removeCalorieEntry = async (id: string) => {
-    try {
-      await removeCalorieFromSupabase(id);
-    } catch (error) {
-      console.error('Error removing calorie entry:', error);
-      alert('Failed to remove calorie entry. Please try again.');
-    }
+  const removeCalorieEntry = (id: string) => {
+    deleteCalorieMutation.mutate(id, {
+      onError: (error) => {
+        console.error('Error removing calorie entry:', error);
+        alert('Failed to remove calorie entry. Please try again.');
+      },
+    });
   };
 
-  const removeExerciseEntry = async (id: string) => {
-    try {
-      await removeExerciseFromSupabase(id);
-    } catch (error) {
-      console.error('Error removing exercise entry:', error);
-      alert('Failed to remove exercise entry. Please try again.');
-    }
+  const removeExerciseEntry = (id: string) => {
+    deleteExerciseMutation.mutate(id, {
+      onError: (error) => {
+        console.error('Error removing exercise entry:', error);
+        alert('Failed to remove exercise entry. Please try again.');
+      },
+    });
   };
 
   return (
