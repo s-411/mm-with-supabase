@@ -18,14 +18,13 @@ export const queryKeys = {
    */
   daily: {
     all: ['daily'] as const,
-    byDate: (date: string) => [...queryKeys.daily.all, date] as const,
-    calories: (date: string) => [...queryKeys.daily.byDate(date), 'calories'] as const,
-    exercises: (date: string) => [...queryKeys.daily.byDate(date), 'exercises'] as const,
-    mits: (date: string) => [...queryKeys.daily.byDate(date), 'mits'] as const,
-    weight: (date: string) => [...queryKeys.daily.byDate(date), 'weight'] as const,
+    byDate: (date: string) => ['daily', date] as const,
+    calories: (date: string) => ['daily', date, 'calories'] as const,
+    exercises: (date: string) => ['daily', date, 'exercises'] as const,
+    mits: (date: string) => ['daily', date, 'mits'] as const,
+    weight: (date: string) => ['daily', date, 'weight'] as const,
     // Range queries for analytics
-    range: (start: string, end: string) =>
-      [...queryKeys.daily.all, 'range', start, end] as const,
+    range: (start: string, end: string) => ['daily', 'range', start, end] as const,
   },
 
   /**
@@ -33,11 +32,9 @@ export const queryKeys = {
    */
   weekly: {
     all: ['weekly'] as const,
-    byWeek: (weekStart: string) => [...queryKeys.weekly.all, weekStart] as const,
-    objectives: (weekStart: string) =>
-      [...queryKeys.weekly.byWeek(weekStart), 'objectives'] as const,
-    review: (weekStart: string) =>
-      [...queryKeys.weekly.byWeek(weekStart), 'review'] as const,
+    byWeek: (weekStart: string) => ['weekly', weekStart] as const,
+    objectives: (weekStart: string) => ['weekly', weekStart, 'objectives'] as const,
+    review: (weekStart: string) => ['weekly', weekStart, 'review'] as const,
   },
 
   /**
@@ -45,8 +42,7 @@ export const queryKeys = {
    */
   injections: {
     all: ['injections'] as const,
-    byDateRange: (start: string, end: string) =>
-      [...queryKeys.injections.all, start, end] as const,
+    byDateRange: (start: string, end: string) => ['injections', start, end] as const,
   },
 
   /**
@@ -55,23 +51,21 @@ export const queryKeys = {
   nirvana: {
     all: ['nirvana'] as const,
     sessions: {
-      all: [...queryKeys.nirvana.all, 'sessions'] as const,
-      byDate: (date: string) =>
-        [...queryKeys.nirvana.sessions.all, date] as const,
+      all: ['nirvana', 'sessions'] as const,
+      byDate: (date: string) => ['nirvana', 'sessions', date] as const,
     },
     weekly: {
-      all: [...queryKeys.nirvana.all, 'weekly'] as const,
-      byWeek: (weekStart: string) =>
-        [...queryKeys.nirvana.weekly.all, weekStart] as const,
+      all: ['nirvana', 'weekly'] as const,
+      byWeek: (weekStart: string) => ['nirvana', 'weekly', weekStart] as const,
     },
     milestones: {
-      all: [...queryKeys.nirvana.all, 'milestones'] as const,
+      all: ['nirvana', 'milestones'] as const,
     },
     personalRecords: {
-      all: [...queryKeys.nirvana.all, 'personalRecords'] as const,
+      all: ['nirvana', 'personalRecords'] as const,
     },
     bodyPartMappings: {
-      all: [...queryKeys.nirvana.all, 'bodyPartMappings'] as const,
+      all: ['nirvana', 'bodyPartMappings'] as const,
     },
   },
 
@@ -80,9 +74,8 @@ export const queryKeys = {
    */
   winnersBible: {
     all: ['winnersBible'] as const,
-    images: () => [...queryKeys.winnersBible.all, 'images'] as const,
-    status: (date: string) =>
-      [...queryKeys.winnersBible.all, 'status', date] as const,
+    images: () => ['winnersBible', 'images'] as const,
+    status: (date: string) => ['winnersBible', 'status', date] as const,
   },
 
   /**
@@ -90,12 +83,12 @@ export const queryKeys = {
    */
   settings: {
     all: ['settings'] as const,
-    profile: () => [...queryKeys.settings.all, 'profile'] as const,
-    macroTargets: () => [...queryKeys.settings.all, 'macroTargets'] as const,
-    compounds: () => [...queryKeys.settings.all, 'compounds'] as const,
-    foodTemplates: () => [...queryKeys.settings.all, 'foodTemplates'] as const,
-    sessionTypes: () => [...queryKeys.settings.all, 'sessionTypes'] as const,
-    trackerSettings: () => [...queryKeys.settings.all, 'trackerSettings'] as const,
+    profile: () => ['settings', 'profile'] as const,
+    macroTargets: () => ['settings', 'macroTargets'] as const,
+    compounds: () => ['settings', 'compounds'] as const,
+    foodTemplates: () => ['settings', 'foodTemplates'] as const,
+    sessionTypes: () => ['settings', 'sessionTypes'] as const,
+    trackerSettings: () => ['settings', 'trackerSettings'] as const,
   },
 } as const;
 
