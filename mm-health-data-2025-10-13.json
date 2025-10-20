@@ -1,0 +1,1404 @@
+{
+  "profile": {
+    "bmr": 1800,
+    "height": 181,
+    "weight": 79.6,
+    "gender": "male",
+    "id": "t0snuvrtg",
+    "createdAt": "2025-09-19T01:17:35.190Z",
+    "updatedAt": "2025-10-13T04:16:56.001Z"
+  },
+  "dailyEntries": {
+    "2025-09-19": {
+      "id": "rot6vyqln",
+      "date": "2025-09-19",
+      "calories": [],
+      "exercises": [],
+      "weight": 82.4,
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "0454eea7-dd82-4074-ae13-3819d46041d3",
+          "compound": "Testosterone",
+          "dosage": 62.5,
+          "unit": "mg",
+          "notes": "2nd dose",
+          "timestamp": "2025-09-19T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-19T01:14:17.692Z",
+      "updatedAt": "2025-09-22T15:48:42.477Z",
+      "mits": [
+        {
+          "id": "xta2t9l11",
+          "task": "Measured Managed App - Functional",
+          "completed": true,
+          "order": 0
+        },
+        {
+          "id": "wwi4ct0hh",
+          "task": "CPN - Affiliate",
+          "completed": true,
+          "order": 1
+        },
+        {
+          "id": "lt0bz04yi",
+          "task": "CPN - Database",
+          "completed": false,
+          "order": 2
+        }
+      ]
+    },
+    "2025-09-28": {
+      "id": "x04ihuouj",
+      "date": "2025-09-28",
+      "calories": [],
+      "exercises": [],
+      "weight": 82.8,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-30T09:24:06.392Z",
+      "updatedAt": "2025-09-30T09:24:06.392Z"
+    },
+    "2025-09-30": {
+      "id": "569hexs7d",
+      "date": "2025-09-30",
+      "calories": [
+        {
+          "id": "f89c1211-33e7-4489-bc5b-2729d99e4344",
+          "name": "Egg - Hard Boiled (3x)",
+          "calories": 210,
+          "carbs": 0,
+          "protein": 18,
+          "fat": 15,
+          "timestamp": "2025-09-30T11:14:17.230Z"
+        },
+        {
+          "id": "7f60c339-fd2e-4dd8-baa9-feede99e3e1a",
+          "name": "Carrot (3x)",
+          "calories": 75,
+          "carbs": 18,
+          "protein": 0,
+          "fat": 0,
+          "timestamp": "2025-09-30T11:14:24.881Z"
+        },
+        {
+          "id": "41401c14-fff2-4172-9c7f-a478c6bc2808",
+          "name": "Carrot (1x)",
+          "calories": 25,
+          "carbs": 6,
+          "protein": 0,
+          "fat": 0,
+          "timestamp": "2025-09-30T15:29:07.753Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "99f12ccb-ae0d-4be2-8671-9aad0c09b1f0",
+          "type": "Spin",
+          "duration": 70,
+          "caloriesBurned": 512,
+          "timestamp": "2025-09-30T17:24:11.565Z"
+        }
+      ],
+      "weight": 80.8,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-30T09:23:47.161Z",
+      "updatedAt": "2025-09-30T17:24:11.565Z"
+    },
+    "2025-08-15": {
+      "id": "eg0f9s2cj",
+      "date": "2025-08-15",
+      "calories": [],
+      "exercises": [],
+      "weight": 85.1,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-25T09:03:09.191Z",
+      "updatedAt": "2025-09-25T09:03:09.191Z"
+    },
+    "2025-09-18": {
+      "id": "0yl9o4nd9",
+      "date": "2025-09-18",
+      "calories": [],
+      "exercises": [],
+      "weight": 83.2,
+      "deepWorkCompleted": true,
+      "injections": [
+        {
+          "id": "f5376351-6037-496f-8a43-617dda3af909",
+          "compound": "Retatrutide",
+          "dosage": 0.5,
+          "unit": "mg",
+          "timestamp": "2025-09-18T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-19T01:14:24.728Z",
+      "updatedAt": "2025-09-22T11:43:18.434Z"
+    },
+    "2025-10-12": {
+      "id": "akuhbxt6a",
+      "date": "2025-10-12",
+      "calories": [
+        {
+          "id": "441c5e04-e2f6-4c07-a1e5-23f1edfbb43e",
+          "name": "Carrot",
+          "calories": 20,
+          "carbs": 5,
+          "protein": 0,
+          "fat": 0,
+          "timestamp": "2025-10-12T09:07:08.057Z"
+        },
+        {
+          "id": "fa96dbfa-2cc4-4118-b978-1c73d19d81dd",
+          "name": "2x ion water",
+          "calories": 70,
+          "carbs": 18,
+          "protein": 0,
+          "fat": 1,
+          "timestamp": "2025-10-12T09:07:25.156Z"
+        },
+        {
+          "id": "a5cb2a5a-0f0a-417a-bf7a-faf6670d10eb",
+          "name": "191 dory",
+          "calories": 157,
+          "carbs": 0,
+          "protein": 36,
+          "fat": 3,
+          "timestamp": "2025-10-12T09:08:58.071Z"
+        },
+        {
+          "id": "657b87a4-633f-4ad6-8582-8c2dbf60ea68",
+          "name": "blt at alt",
+          "calories": 350,
+          "carbs": 30,
+          "protein": 18,
+          "fat": 18,
+          "timestamp": "2025-10-12T09:24:17.309Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "bd016a62-2df1-4f83-9fa2-8275dae2f1a8",
+          "type": "home workout",
+          "duration": 20,
+          "caloriesBurned": 250,
+          "timestamp": "2025-10-12T09:06:14.206Z"
+        },
+        {
+          "id": "a5cc3189-7ff3-4998-8897-efe28876838e",
+          "type": "gym sesh",
+          "duration": 30,
+          "caloriesBurned": 300,
+          "timestamp": "2025-10-12T09:06:22.239Z"
+        }
+      ],
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-12T09:06:14.206Z",
+      "updatedAt": "2025-10-12T09:24:17.309Z"
+    },
+    "2025-10-02": {
+      "id": "66hb3f5vp",
+      "date": "2025-10-02",
+      "calories": [
+        {
+          "id": "2fcf9fd6-b1e5-4d1a-b02f-3303fb4f743b",
+          "name": "268grams dory",
+          "calories": 267,
+          "carbs": 0,
+          "protein": 56,
+          "fat": 2,
+          "timestamp": "2025-10-02T06:04:23.479Z"
+        },
+        {
+          "id": "e42c95ee-f46c-4a20-acf5-019bd984d9ac",
+          "name": "P shake",
+          "calories": 120,
+          "carbs": 3,
+          "protein": 24,
+          "fat": 2,
+          "timestamp": "2025-10-02T06:05:06.945Z"
+        },
+        {
+          "id": "d0262fa6-f780-4285-88a3-d79cf4985bb5",
+          "name": "234 Dory ",
+          "calories": 202,
+          "carbs": 0,
+          "protein": 43,
+          "fat": 3,
+          "timestamp": "2025-10-02T11:45:46.076Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "6a964923-eaeb-4352-90fc-379cc9757a6a",
+          "type": "Gym in sun. Dips and abs",
+          "duration": 120,
+          "caloriesBurned": 1000,
+          "timestamp": "2025-10-02T06:03:20.064Z"
+        }
+      ],
+      "weight": 79.4,
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "6ad881c3-a190-4285-831c-244b06f16ef8",
+          "compound": "Testosterone",
+          "dosage": 62.5,
+          "unit": "mg",
+          "notes": "IM butt",
+          "timestamp": "2025-10-02T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-02T01:00:34.119Z",
+      "updatedAt": "2025-10-03T03:40:47.222Z"
+    },
+    "2025-08-29": {
+      "id": "2y7o4kzkd",
+      "date": "2025-08-29",
+      "calories": [],
+      "exercises": [],
+      "weight": 83.5,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-25T09:04:10.171Z",
+      "updatedAt": "2025-09-25T09:04:10.171Z"
+    },
+    "2025-10-06": {
+      "id": "o73h4h3kn",
+      "date": "2025-10-06",
+      "calories": [],
+      "exercises": [],
+      "weight": 81.8,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-05T22:56:44.037Z",
+      "updatedAt": "2025-10-05T22:56:44.037Z"
+    },
+    "2025-09-24": {
+      "id": "q9i0ballp",
+      "date": "2025-09-24",
+      "calories": [
+        {
+          "id": "3b078c9e-836c-47c4-9cb8-1fbf82db0faf",
+          "name": "Dory 150g",
+          "calories": 150,
+          "carbs": 0,
+          "protein": 30,
+          "fat": 2,
+          "timestamp": "2025-09-23T23:25:53.882Z"
+        },
+        {
+          "id": "f109d034-2fe9-4803-8c7f-6324e6a380c0",
+          "name": "Dory 160g",
+          "calories": 131,
+          "carbs": 0,
+          "protein": 28,
+          "fat": 2,
+          "timestamp": "2025-09-24T03:04:26.261Z"
+        },
+        {
+          "id": "a36f3eab-c8aa-410c-9663-287a445acc6c",
+          "name": "Unnamed Food",
+          "calories": 6,
+          "carbs": 1,
+          "protein": 0,
+          "fat": 0,
+          "timestamp": "2025-09-24T06:50:18.225Z"
+        },
+        {
+          "id": "ebd03df7-f027-4416-a886-72ad0e683cbc",
+          "name": "1/2 an Orange",
+          "calories": 31,
+          "carbs": 8,
+          "protein": 1,
+          "fat": 0,
+          "timestamp": "2025-09-24T06:50:48.325Z"
+        },
+        {
+          "id": "240dd531-71e5-4d82-9a53-58fc17d94bc0",
+          "name": "256g dory",
+          "calories": 210,
+          "carbs": 0,
+          "protein": 45,
+          "fat": 3,
+          "timestamp": "2025-09-24T06:53:27.125Z"
+        },
+        {
+          "id": "63ddc2ac-a2b5-4cd7-ac84-6a1bd1e7efa6",
+          "name": "130g dory",
+          "calories": 107,
+          "carbs": 0,
+          "protein": 23,
+          "fat": 2,
+          "timestamp": "2025-09-24T12:13:18.101Z"
+        },
+        {
+          "id": "7520b049-03b4-4eb4-8159-53e61d27e3e6",
+          "name": "115 g Dory",
+          "calories": 93,
+          "carbs": 20,
+          "protein": 20,
+          "fat": 2,
+          "timestamp": "2025-09-24T13:35:53.122Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "013e2b19-4eb0-4cca-a38d-637d42919ce8",
+          "type": "Spin",
+          "duration": 17,
+          "caloriesBurned": 160,
+          "timestamp": "2025-09-23T22:59:24.258Z"
+        },
+        {
+          "id": "404e046f-ff6b-4453-9f76-91e2dc85577c",
+          "type": "Spin + Nipple Chins",
+          "duration": 48,
+          "caloriesBurned": 585,
+          "timestamp": "2025-09-24T05:29:51.616Z"
+        },
+        {
+          "id": "c1566793-106b-44d4-a41e-a4c53e421931",
+          "type": "Gym spin and lower",
+          "duration": 60,
+          "caloriesBurned": 300,
+          "timestamp": "2025-09-24T06:49:44.993Z"
+        },
+        {
+          "id": "3e64c5d3-d6de-4d31-821d-05a759570e31",
+          "type": "Night Spin",
+          "duration": 60,
+          "caloriesBurned": 587,
+          "timestamp": "2025-09-24T13:04:39.272Z"
+        }
+      ],
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "fffe358b-bfbe-418f-bc16-233693474241",
+          "compound": "Retatrutide",
+          "dosage": 0.5,
+          "unit": "mg",
+          "timestamp": "2025-09-24T00:00:00.000Z"
+        },
+        {
+          "id": "b87f170e-a46d-478b-bce8-f736f3c8c810",
+          "compound": "Retatrutide",
+          "dosage": 0.5,
+          "unit": "mg",
+          "timestamp": "2025-09-23T19:03:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-23T09:10:55.568Z",
+      "updatedAt": "2025-09-24T14:49:08.404Z",
+      "mits": [
+        {
+          "id": "4y5kooajo",
+          "task": "Drop Whoop off",
+          "completed": true,
+          "order": 0
+        }
+      ],
+      "weight": 80.5
+    },
+    "2025-08-20": {
+      "id": "ommppe2db",
+      "date": "2025-08-20",
+      "calories": [],
+      "exercises": [],
+      "weight": 85.8,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-25T09:03:42.087Z",
+      "updatedAt": "2025-09-25T09:03:42.087Z"
+    },
+    "2025-08-16": {
+      "id": "p7ls7oeq3",
+      "date": "2025-08-16",
+      "calories": [],
+      "exercises": [],
+      "weight": 85.6,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-25T09:03:17.341Z",
+      "updatedAt": "2025-09-25T09:03:17.341Z"
+    },
+    "2025-10-10": {
+      "id": "a3b5sx4eq",
+      "date": "2025-10-10",
+      "calories": [],
+      "exercises": [],
+      "weight": 81.1,
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "fb2a0de6-482a-4708-9580-877990525a75",
+          "compound": "Retatrutide",
+          "dosage": 0.5,
+          "unit": "mg",
+          "timestamp": "2025-10-10T04:00:00.000Z"
+        },
+        {
+          "id": "6ae011c7-6206-4cb7-8e54-ea2720c707c4",
+          "compound": "Testosterone",
+          "dosage": 62.5,
+          "unit": "mg",
+          "timestamp": "2025-10-10T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-10T02:38:02.874Z",
+      "updatedAt": "2025-10-10T02:38:26.578Z"
+    },
+    "2025-08-17": {
+      "id": "argzf8847",
+      "date": "2025-08-17",
+      "calories": [],
+      "exercises": [],
+      "weight": 84.9,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-19T01:33:37.624Z",
+      "updatedAt": "2025-09-25T09:03:25.573Z"
+    },
+    "2025-08-19": {
+      "id": "eskgf15w0",
+      "date": "2025-08-19",
+      "calories": [],
+      "exercises": [],
+      "weight": 86.2,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-25T09:03:33.687Z",
+      "updatedAt": "2025-09-25T09:03:33.687Z"
+    },
+    "2025-08-13": {
+      "id": "r38dxfb1d",
+      "date": "2025-08-13",
+      "calories": [],
+      "exercises": [],
+      "weight": 86.2,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-25T09:02:45.763Z",
+      "updatedAt": "2025-09-25T09:02:45.763Z"
+    },
+    "2025-09-25": {
+      "id": "x77qaqa7n",
+      "date": "2025-09-25",
+      "calories": [
+        {
+          "id": "a0e9f708-1be8-4c66-856b-28661b5096de",
+          "name": "235g Dory",
+          "calories": 193,
+          "carbs": 0,
+          "protein": 41,
+          "fat": 3,
+          "timestamp": "2025-09-25T02:24:49.240Z"
+        },
+        {
+          "id": "4dcd31cb-cb55-487f-996a-d0c18aed1f16",
+          "name": "136g Dory",
+          "calories": 112,
+          "carbs": 0,
+          "protein": 24,
+          "fat": 0,
+          "timestamp": "2025-09-25T07:00:27.117Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "1414e7ef-3095-4eab-861b-fb8cb4e3b4e1",
+          "type": "Spin",
+          "duration": 20,
+          "caloriesBurned": 124,
+          "timestamp": "2025-09-25T02:25:00.972Z"
+        }
+      ],
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "f5709915-4788-45e5-81c4-a65e34bf8ae0",
+          "compound": "Testosterone",
+          "dosage": 62.5,
+          "unit": "mg",
+          "notes": "Frist IM (Thursday)",
+          "timestamp": "2025-09-25T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-25T02:24:49.241Z",
+      "updatedAt": "2025-09-30T09:24:46.428Z",
+      "weight": 80.2
+    },
+    "2025-10-01": {
+      "id": "eaktr3rmd",
+      "date": "2025-10-01",
+      "calories": [
+        {
+          "id": "38018c3c-9832-4b33-b827-745e135b5d04",
+          "name": "168g dory",
+          "calories": 148,
+          "carbs": 0,
+          "protein": 26,
+          "fat": 4,
+          "timestamp": "2025-10-01T02:16:47.954Z"
+        },
+        {
+          "id": "e5bcd873-89cf-4cba-86b3-71c581c5d254",
+          "name": "105g dory",
+          "calories": 92,
+          "carbs": 0,
+          "protein": 20,
+          "fat": 1,
+          "timestamp": "2025-10-01T02:44:29.247Z"
+        },
+        {
+          "id": "e9a9c691-28ef-4a3c-9397-4c6652faa325",
+          "name": "Egg - Hard Boiled (1x)",
+          "calories": 70,
+          "carbs": 0,
+          "protein": 6,
+          "fat": 5,
+          "timestamp": "2025-10-01T06:18:37.226Z"
+        },
+        {
+          "id": "19ef0108-fa12-454c-a11b-64aa700ed276",
+          "name": "140g dory",
+          "calories": 130,
+          "carbs": 0,
+          "protein": 28,
+          "fat": 1,
+          "timestamp": "2025-10-01T06:26:30.160Z"
+        },
+        {
+          "id": "eecbf80a-8115-4b62-bddf-67ab36f8b7a7",
+          "name": "Egg - Hard Boiled (1x)",
+          "calories": 70,
+          "carbs": 0,
+          "protein": 6,
+          "fat": 5,
+          "timestamp": "2025-10-01T12:50:41.927Z"
+        },
+        {
+          "id": "1680b2ab-81a5-4c48-b641-7327d123ef61",
+          "name": "121g dory",
+          "calories": 120,
+          "carbs": 0,
+          "protein": 21,
+          "fat": 1,
+          "timestamp": "2025-10-01T13:06:48.137Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "4130c6b9-65c8-46c7-940e-71dc36b77e28",
+          "type": "Shoulder in Sun, very fatigued",
+          "duration": 40,
+          "caloriesBurned": 350,
+          "timestamp": "2025-10-01T05:53:46.229Z"
+        },
+        {
+          "id": "f12947ae-7360-4866-96a1-4b5095f46528",
+          "type": "Spin",
+          "duration": 60,
+          "caloriesBurned": 534,
+          "timestamp": "2025-10-01T13:06:22.302Z"
+        }
+      ],
+      "weight": 80.5,
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "489525e2-bc12-40bd-91e1-d0ba2d8af042",
+          "compound": "Retatrutide",
+          "dosage": 0.5,
+          "unit": "mg",
+          "timestamp": "2025-10-01T04:00:00.000Z"
+        },
+        {
+          "id": "c9220e5f-9c0d-4d2a-8356-eceede8d9b64",
+          "compound": "Ipamorellin",
+          "dosage": 250,
+          "unit": "mcg",
+          "timestamp": "2025-10-01T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-01T00:38:11.670Z",
+      "updatedAt": "2025-10-01T13:06:48.137Z"
+    },
+    "2025-10-03": {
+      "id": "dcr4k995q",
+      "date": "2025-10-03",
+      "calories": [
+        {
+          "id": "b110b3c7-6128-42e4-81c6-9d39258a37f2",
+          "name": "268g dory",
+          "calories": 220,
+          "carbs": 0,
+          "protein": 47,
+          "fat": 4,
+          "timestamp": "2025-10-03T07:48:30.102Z"
+        },
+        {
+          "id": "490537db-6f80-4d16-b2e2-4f71e3567df6",
+          "name": "Carrot (1x)",
+          "calories": 25,
+          "carbs": 6,
+          "protein": 0,
+          "fat": 0,
+          "timestamp": "2025-10-03T07:48:34.922Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "2dd69a69-daf4-47f8-8049-8c924f3fbcd0",
+          "type": "Gym",
+          "duration": 90,
+          "caloriesBurned": 550,
+          "timestamp": "2025-10-03T07:48:58.834Z"
+        }
+      ],
+      "weight": 79.4,
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "09cbfb1f-f86c-4e2d-b5ea-31b6b2cc65a3",
+          "compound": "Retatrutide",
+          "dosage": 0.5,
+          "unit": "mg",
+          "timestamp": "2025-10-03T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-03T03:40:26.238Z",
+      "updatedAt": "2025-10-03T07:48:58.835Z"
+    },
+    "2025-09-22": {
+      "id": "pkhs01h04",
+      "date": "2025-09-22",
+      "calories": [
+        {
+          "id": "bf9f1daf-d471-43b1-afad-ec8caca35cb2",
+          "name": "1 Orange",
+          "calories": 86,
+          "carbs": 21,
+          "protein": 2,
+          "fat": 0,
+          "timestamp": "2025-09-22T06:52:07.615Z"
+        },
+        {
+          "id": "c7053ebc-1de5-4f58-a499-cdbe22c06f12",
+          "name": "1 cup white rice",
+          "calories": 205,
+          "carbs": 44,
+          "protein": 4,
+          "fat": 1,
+          "timestamp": "2025-09-22T06:52:37.297Z"
+        },
+        {
+          "id": "b8568873-9cf1-4608-b1ba-678fbddcbb7f",
+          "name": "1 Kiwi Fruit",
+          "calories": 42,
+          "carbs": 10,
+          "protein": 1,
+          "fat": 0,
+          "timestamp": "2025-09-22T06:53:05.831Z"
+        },
+        {
+          "id": "a99df805-f8a1-4116-8346-a569fc1c39ae",
+          "name": "16g Dory Fillet",
+          "calories": 144,
+          "carbs": 0,
+          "protein": 31,
+          "fat": 2,
+          "timestamp": "2025-09-22T07:31:17.897Z"
+        },
+        {
+          "id": "98607506-7393-459b-86a3-148fbe864102",
+          "name": "119g Dory",
+          "calories": 103,
+          "carbs": 0,
+          "protein": 22,
+          "fat": 1,
+          "timestamp": "2025-09-22T10:10:09.771Z"
+        },
+        {
+          "id": "2940825d-8089-4e8b-bba0-a8e525f7a6ce",
+          "name": "1 Carrot",
+          "calories": 25,
+          "carbs": 6,
+          "protein": 1,
+          "fat": 0,
+          "timestamp": "2025-09-22T15:57:10.894Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "e632e421-c1a4-4367-97ce-f1eb714c0ce9",
+          "type": "Weights",
+          "duration": 60,
+          "caloriesBurned": 500,
+          "timestamp": "2025-09-22T06:53:14.546Z"
+        },
+        {
+          "id": "f62cd7cc-9448-4f85-af27-aff7c2b961d0",
+          "type": "Spin",
+          "duration": 35,
+          "caloriesBurned": 340,
+          "timestamp": "2025-09-22T14:15:46.515Z"
+        }
+      ],
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "f4a60968-7479-495e-a1ea-43682616dfe5",
+          "compound": "Retatrutide",
+          "dosage": 0.5,
+          "unit": "mg",
+          "timestamp": "2025-09-22T04:00:00.000Z"
+        },
+        {
+          "id": "68e437bd-79a9-43cd-883e-6d9a9f50afc5",
+          "compound": "Testosterone",
+          "dosage": 62.5,
+          "unit": "mg",
+          "notes": "3rd dose",
+          "timestamp": "2025-09-22T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-22T00:19:26.731Z",
+      "updatedAt": "2025-09-22T15:57:10.895Z",
+      "mits": [
+        {
+          "id": "8diwcyzlm",
+          "task": "CPN - Mobile testing",
+          "completed": false,
+          "order": 0
+        },
+        {
+          "id": "5b717jv2a",
+          "task": "CPN - Database",
+          "completed": false,
+          "order": 1
+        },
+        {
+          "id": "msxwu074j",
+          "task": "CPN - Payments",
+          "completed": false,
+          "order": 2
+        },
+        {
+          "id": "z4joiszh3",
+          "task": "MMH Change name and logo",
+          "completed": false,
+          "order": 3
+        },
+        {
+          "id": "01dke7beg",
+          "task": "$350 for VIC language picker",
+          "completed": false,
+          "order": 4
+        }
+      ],
+      "weight": 82.8
+    },
+    "2025-09-16": {
+      "id": "y8q64m7pj",
+      "date": "2025-09-16",
+      "calories": [],
+      "exercises": [],
+      "weight": 83.5,
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "f83834ae-6fd3-4efa-9028-3cee81298101",
+          "compound": "Retatrutide",
+          "dosage": 0.5,
+          "unit": "mg",
+          "timestamp": "2025-09-16T04:00:00.000Z"
+        },
+        {
+          "id": "7e77bfc8-3349-4363-a471-152514144f30",
+          "compound": "Testosterone",
+          "dosage": 62.5,
+          "unit": "mg",
+          "notes": "1st dose",
+          "timestamp": "2025-09-16T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-19T01:14:36.240Z",
+      "updatedAt": "2025-09-22T15:48:03.344Z"
+    },
+    "2025-09-26": {
+      "id": "6l5urinr1",
+      "date": "2025-09-26",
+      "calories": [],
+      "exercises": [],
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "f4a8e1a2-fffd-40d7-9e47-98a25ce57bb4",
+          "compound": "Retatrutide",
+          "dosage": 0.5,
+          "unit": "mg",
+          "timestamp": "2025-09-26T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-30T17:52:44.756Z",
+      "updatedAt": "2025-09-30T17:52:44.756Z"
+    },
+    "2025-09-14": {
+      "id": "6ozg464l5",
+      "date": "2025-09-14",
+      "calories": [],
+      "exercises": [],
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "284c8286-f578-4f6c-8259-36563d360e6f",
+          "compound": "Retatrutide",
+          "dosage": 0.5,
+          "unit": "mg",
+          "notes": "In Aus",
+          "timestamp": "2025-09-14T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-19T03:02:25.692Z",
+      "updatedAt": "2025-09-22T15:50:35.544Z"
+    },
+    "2025-09-17": {
+      "id": "vpofg9om2",
+      "date": "2025-09-17",
+      "calories": [],
+      "exercises": [],
+      "weight": 83.4,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-19T01:14:30.592Z",
+      "updatedAt": "2025-09-19T01:14:30.592Z"
+    },
+    "2025-10-04": {
+      "id": "qppe2bas9",
+      "date": "2025-10-04",
+      "calories": [
+        {
+          "id": "933e7db3-dee1-46dc-ac15-24a4f77e1ddc",
+          "name": "210 dory",
+          "calories": 210,
+          "carbs": 0,
+          "protein": 40,
+          "fat": 2,
+          "timestamp": "2025-10-04T08:03:59.538Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "049530cc-2631-4d56-a14f-ce53652ed6c5",
+          "type": "2h gym",
+          "duration": 120,
+          "caloriesBurned": 1000,
+          "timestamp": "2025-10-04T08:04:08.337Z"
+        }
+      ],
+      "weight": 78.9,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-04T00:56:05.484Z",
+      "updatedAt": "2025-10-04T08:04:08.337Z"
+    },
+    "2025-09-03": {
+      "id": "7ixku9xg2",
+      "date": "2025-09-03",
+      "calories": [],
+      "exercises": [],
+      "weight": 82.9,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-19T01:34:00.197Z",
+      "updatedAt": "2025-09-19T01:34:00.197Z"
+    },
+    "2025-08-26": {
+      "id": "v8ctq01vh",
+      "date": "2025-08-26",
+      "calories": [],
+      "exercises": [],
+      "weight": 85,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-25T09:03:51.476Z",
+      "updatedAt": "2025-09-25T09:03:51.476Z"
+    },
+    "2025-09-20": {
+      "id": "to16mqyxy",
+      "date": "2025-09-20",
+      "calories": [],
+      "exercises": [],
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-19T12:14:44.154Z",
+      "updatedAt": "2025-09-20T00:45:43.703Z",
+      "mits": [
+        {
+          "id": "mf1b64w8a",
+          "task": "CPN - Mobile testing",
+          "completed": false,
+          "order": 0
+        },
+        {
+          "id": "51mokvugy",
+          "task": "CPN - Database",
+          "completed": false,
+          "order": 1
+        },
+        {
+          "id": "qkdjf8728",
+          "task": "CPN - Payments",
+          "completed": false,
+          "order": 2
+        },
+        {
+          "id": "48pctv3z3",
+          "task": "MMH Change name and logo",
+          "completed": false,
+          "order": 3
+        },
+        {
+          "id": "bgmci2a5e",
+          "task": "Email Jadamabout Chatbot",
+          "completed": false,
+          "order": 4
+        }
+      ],
+      "weight": 83
+    },
+    "2025-10-07": {
+      "id": "fwlajag3q",
+      "date": "2025-10-07",
+      "calories": [
+        {
+          "id": "a0d02fe9-0752-4bfd-be82-25fae84dcf0b",
+          "name": "313grams Dory",
+          "calories": 257,
+          "carbs": 0,
+          "protein": 55,
+          "fat": 5,
+          "timestamp": "2025-10-07T05:30:13.449Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "b883fa88-ab84-4369-8421-64c6953d1dba",
+          "type": "Gym",
+          "duration": 40,
+          "caloriesBurned": 400,
+          "timestamp": "2025-10-07T05:30:23.198Z"
+        }
+      ],
+      "weight": 82.4,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-06T23:47:43.484Z",
+      "updatedAt": "2025-10-07T05:30:23.198Z"
+    },
+    "2025-08-28": {
+      "id": "lcwqbeihw",
+      "date": "2025-08-28",
+      "calories": [],
+      "exercises": [],
+      "weight": 84.2,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-25T09:03:58.472Z",
+      "updatedAt": "2025-09-25T09:03:58.472Z"
+    },
+    "2025-09-23": {
+      "id": "r324pda4a",
+      "date": "2025-09-23",
+      "calories": [
+        {
+          "id": "abcb43ac-14d5-48e8-856a-8ff70b0a79a5",
+          "name": "Dory 300g",
+          "calories": 255,
+          "carbs": 0,
+          "protein": 54,
+          "fat": 2,
+          "timestamp": "2025-09-23T06:03:20.901Z"
+        },
+        {
+          "id": "c632d654-edf0-4a04-ace4-cacc8e7103e4",
+          "name": "Carrot (1x)",
+          "calories": 25,
+          "carbs": 6,
+          "protein": 0,
+          "fat": 0,
+          "timestamp": "2025-09-23T11:46:39.090Z"
+        },
+        {
+          "id": "d2f9f181-77d1-409d-a288-12a458026049",
+          "name": "119g Dory",
+          "calories": 98,
+          "carbs": 0,
+          "protein": 20,
+          "fat": 0,
+          "timestamp": "2025-09-23T11:47:23.305Z"
+        },
+        {
+          "id": "0419c39d-33b8-44ba-b034-5af729bbac53",
+          "name": "Dory ",
+          "calories": 150,
+          "carbs": 0,
+          "protein": 30,
+          "fat": 2,
+          "timestamp": "2025-09-23T13:51:18.880Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "04d88012-6a36-4399-b4e9-802b835355d8",
+          "type": "Spin",
+          "duration": 25,
+          "caloriesBurned": 150,
+          "timestamp": "2025-09-23T02:12:50.076Z"
+        },
+        {
+          "id": "1c30bf43-8465-4664-b4a9-abd5f01b43b7",
+          "type": "BW Circut at gym",
+          "duration": 60,
+          "caloriesBurned": 700,
+          "timestamp": "2025-09-23T06:03:38.996Z"
+        },
+        {
+          "id": "fa83eed8-53c6-4010-b71b-5caeffd94449",
+          "type": "Spin",
+          "duration": 47,
+          "caloriesBurned": 580,
+          "timestamp": "2025-09-23T13:51:53.296Z"
+        }
+      ],
+      "weight": 82,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-23T00:21:44.779Z",
+      "updatedAt": "2025-09-23T13:54:40.648Z",
+      "mits": [
+        {
+          "id": "9len55dif",
+          "task": "$350 for VIC language picker",
+          "completed": false,
+          "order": 0
+        },
+        {
+          "id": "wduhfgdby",
+          "task": "Reply to Whoop",
+          "completed": true,
+          "order": 1
+        },
+        {
+          "id": "vejdu5xw1",
+          "task": "LP for Anam",
+          "completed": false,
+          "order": 2
+        },
+        {
+          "id": "nhkqq57aq",
+          "task": "Another Spin x 2",
+          "completed": true,
+          "order": 3
+        },
+        {
+          "id": "7j87d9b8l",
+          "task": "LINK $200 at stake",
+          "completed": false,
+          "order": 4
+        }
+      ]
+    },
+    "2025-09-29": {
+      "id": "61s6g6mjp",
+      "date": "2025-09-29",
+      "calories": [
+        {
+          "id": "a7ceb54d-da22-4107-8c7a-7154dcb21a50",
+          "name": "125g serloin",
+          "calories": 250,
+          "carbs": 0,
+          "protein": 38,
+          "fat": 11,
+          "timestamp": "2025-09-30T11:15:57.382Z"
+        },
+        {
+          "id": "64320c95-d7ef-4bf9-bbdf-8378e4e6d2a4",
+          "name": "Egg - Hard Boiled (3x)",
+          "calories": 210,
+          "carbs": 0,
+          "protein": 18,
+          "fat": 15,
+          "timestamp": "2025-09-30T11:17:02.034Z"
+        },
+        {
+          "id": "fadac05c-7a90-4d43-bc2d-d18c72fbfbf7",
+          "name": "Carrot (3x)",
+          "calories": 75,
+          "carbs": 18,
+          "protein": 0,
+          "fat": 0,
+          "timestamp": "2025-09-30T11:17:15.883Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "c48d8d01-804b-455e-a7a7-5af5e51a0c35",
+          "type": "Crazy spin sesh",
+          "duration": 180,
+          "caloriesBurned": 1751,
+          "timestamp": "2025-09-30T11:16:42.951Z"
+        }
+      ],
+      "weight": 81.2,
+      "deepWorkCompleted": false,
+      "injections": [
+        {
+          "id": "9415d9ee-45f9-404c-87bd-3bf4fe61424a",
+          "compound": "Retatrutide",
+          "dosage": 0.5,
+          "unit": "mg",
+          "timestamp": "2025-09-29T04:00:00.000Z"
+        },
+        {
+          "id": "364062f3-c099-4b01-acdb-9c3705b0ca26",
+          "compound": "Testosterone",
+          "dosage": 62.5,
+          "unit": "mg",
+          "timestamp": "2025-09-29T04:00:00.000Z"
+        }
+      ],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-30T09:23:56.426Z",
+      "updatedAt": "2025-09-30T17:52:05.158Z"
+    },
+    "2025-10-05": {
+      "id": "gpljppa21",
+      "date": "2025-10-05",
+      "calories": [],
+      "exercises": [],
+      "weight": 80.2,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-05T11:04:52.078Z",
+      "updatedAt": "2025-10-05T11:04:52.078Z"
+    },
+    "2025-10-08": {
+      "id": "bhlr0z5x1",
+      "date": "2025-10-08",
+      "calories": [
+        {
+          "id": "13f4a613-25a2-4238-9c13-ee4765f34188",
+          "name": "215 serloin steak, no oil, air fried",
+          "calories": 584,
+          "carbs": 0,
+          "protein": 66,
+          "fat": 36,
+          "timestamp": "2025-10-08T07:13:06.272Z"
+        },
+        {
+          "id": "90299583-4306-45c1-8eaf-0fae04b91482",
+          "name": "Carrot (1x)",
+          "calories": 25,
+          "carbs": 6,
+          "protein": 0,
+          "fat": 0,
+          "timestamp": "2025-10-08T07:13:10.541Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "b029b612-470e-4efc-902a-a882b02ede9b",
+          "type": "Gym",
+          "duration": 110,
+          "caloriesBurned": 700,
+          "timestamp": "2025-10-08T05:44:22.567Z"
+        }
+      ],
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-08T05:44:09.101Z",
+      "updatedAt": "2025-10-08T07:13:10.541Z"
+    },
+    "2025-10-13": {
+      "id": "n5zvtksmu",
+      "date": "2025-10-13",
+      "calories": [],
+      "exercises": [],
+      "weight": 79.6,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-13T04:16:56.001Z",
+      "updatedAt": "2025-10-13T04:16:56.001Z"
+    },
+    "2025-10-09": {
+      "id": "ju2a40bzr",
+      "date": "2025-10-09",
+      "calories": [],
+      "exercises": [],
+      "weight": 81.1,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-09T14:39:37.554Z",
+      "updatedAt": "2025-10-09T14:39:37.554Z"
+    },
+    "2025-08-14": {
+      "id": "doqj557g0",
+      "date": "2025-08-14",
+      "calories": [],
+      "exercises": [],
+      "weight": 84.9,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-25T09:03:01.108Z",
+      "updatedAt": "2025-09-25T09:03:01.108Z"
+    },
+    "2025-08-12": {
+      "id": "gg5o4ee80",
+      "date": "2025-08-12",
+      "calories": [],
+      "exercises": [],
+      "weight": 88.5,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-09-19T01:32:40.594Z",
+      "updatedAt": "2025-09-19T01:32:40.594Z"
+    },
+    "2025-10-11": {
+      "id": "smauhozju",
+      "date": "2025-10-11",
+      "calories": [
+        {
+          "id": "68f7b9b3-1ca6-4081-93ca-995081c31079",
+          "name": "280g dory",
+          "calories": 230,
+          "carbs": 0,
+          "protein": 52,
+          "fat": 4,
+          "timestamp": "2025-10-11T11:28:31.156Z"
+        },
+        {
+          "id": "5a2ecb41-1e51-4ae0-ad1a-3f625a98c9f3",
+          "name": "Egg - Hard Boiled (3x)",
+          "calories": 210,
+          "carbs": 0,
+          "protein": 18,
+          "fat": 15,
+          "timestamp": "2025-10-11T11:28:37.309Z"
+        },
+        {
+          "id": "5b79319b-9363-4651-84f2-aae8657e1f1b",
+          "name": "230g steak",
+          "calories": 625,
+          "carbs": 0,
+          "protein": 71,
+          "fat": 39,
+          "timestamp": "2025-10-11T14:24:53.381Z"
+        }
+      ],
+      "exercises": [
+        {
+          "id": "a02d45e6-0b75-49db-8b90-2e4c8c07a671",
+          "type": "Gym",
+          "duration": 40,
+          "caloriesBurned": 400,
+          "timestamp": "2025-10-11T11:28:48.722Z"
+        }
+      ],
+      "weight": 79.6,
+      "deepWorkCompleted": false,
+      "injections": [],
+      "winnersBibleMorning": false,
+      "winnersBibleNight": false,
+      "createdAt": "2025-10-11T01:12:32.558Z",
+      "updatedAt": "2025-10-11T14:24:53.381Z"
+    }
+  },
+  "compounds": [
+    "Retatrutide",
+    "Testosterone",
+    "Ipamorellin"
+  ],
+  "exportDate": "2025-10-13T04:17:56.900Z",
+  "version": "1.0.0"
+}
