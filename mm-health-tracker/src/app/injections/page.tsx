@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+
+// Force dynamic rendering to avoid hydration issues with TanStack Query
+export const dynamic = 'force-dynamic';
 import { dailyEntryStorage, compoundStorage, injectionTargetStorage, timezoneStorage } from '@/lib/storage';
 import { InjectionEntry } from '@/types';
 import { useInjections } from '@/lib/hooks/useInjections';

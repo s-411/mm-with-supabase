@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+
+// Force dynamic rendering to avoid hydration issues with TanStack Query
+export const dynamic = 'force-dynamic';
 import { timezoneStorage } from '@/lib/storage';
 import { useMacroTargets, useFoodTemplates } from '@/lib/hooks/useSettings';
 import {

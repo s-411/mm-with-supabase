@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+
+// Force dynamic rendering to avoid hydration issues with date-based queries
+export const dynamic = 'force-dynamic';
 import { profileStorage, dailyEntryStorage, calculations, nirvanaSessionStorage, bodyPartMappingStorage, sessionCorrelationStorage } from '@/lib/storage';
 import { UserProfile, NirvanaEntry, BodyPartUsage, CorrelationAnalysis } from '@/types';
 import { useMacroTargets } from '@/lib/hooks/useSettings';

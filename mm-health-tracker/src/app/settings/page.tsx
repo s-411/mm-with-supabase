@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
+
+// Force dynamic rendering to avoid hydration issues with TanStack Query
+export const dynamic = 'force-dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useProfile, useApp } from '@/lib/context-supabase';
 import {
