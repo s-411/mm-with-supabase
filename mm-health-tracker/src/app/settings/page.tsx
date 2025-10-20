@@ -1,9 +1,26 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
+
+// Force dynamic rendering to avoid hydration issues with TanStack Query
+export const dynamic = 'force-dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useProfile, useApp } from '@/lib/context-supabase';
-import { useCompounds, useFoodTemplates, useNirvanaSessionTypes, useMacroTargets, useTrackerSettings } from '@/lib/hooks/useSettings';
+import {
+  useCompounds,
+  useAddCompound,
+  useRemoveCompound,
+  useFoodTemplates,
+  useAddFoodTemplate,
+  useRemoveFoodTemplate,
+  useNirvanaSessionTypes,
+  useAddNirvanaSessionType,
+  useRemoveNirvanaSessionType,
+  useMacroTargets,
+  useUpdateMacroTargets,
+  useTrackerSettings,
+  useUpdateTrackerSettings
+} from '@/lib/hooks/useSettings';
 import type { Database } from '@/lib/supabase/database.types';
 import { profileStorage, dataExport, compoundStorage, foodTemplateStorage, FoodTemplate, injectionTargetStorage, nirvanaSessionTypesStorage, timezoneStorage } from '@/lib/storage';
 import { useWinnersBibleImages } from '@/lib/hooks/useWinnersBible';
@@ -24,6 +41,22 @@ import {
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 
+// Settings navigation sections
+const settingsSections = [
+  { id: 'profile', label: 'Profile Settings', icon: UserIcon },
+  { id: 'timezone', label: 'Time Zone', icon: CalendarDaysIcon },
+  { id: 'macro-targets', label: 'Macro Targets', icon: FireIcon },
+  { id: 'compounds', label: 'Compounds', icon: BeakerIcon },
+  { id: 'injection-targets', label: 'Injection Targets', icon: BeakerIcon },
+  { id: 'nirvana', label: 'Nirvana Sessions', icon: SparklesIcon },
+  { id: 'winners-bible', label: 'Winners Bible', icon: PhotoIcon },
+  { id: 'food-templates', label: 'Food Templates', icon: FireIcon },
+  { id: 'tracker-settings', label: 'Tracker Settings', icon: CalendarDaysIcon },
+  { id: 'data', label: 'Data Management', icon: DocumentArrowDownIcon },
+  { id: 'about', label: 'About', icon: HeartIcon },
+  { id: 'account', label: 'Account', icon: ArrowRightOnRectangleIcon },
+];
+
 function SettingsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -32,6 +65,7 @@ function SettingsPageContent() {
 
   const { profile, updateProfile: updateSupabaseProfile, isLoading: profileLoading } = useProfile();
   const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [activeSection, setActiveSection] = useState('profile');
 
   // Local state for profile form inputs
   const [localProfile, setLocalProfile] = useState({
@@ -44,11 +78,23 @@ function SettingsPageContent() {
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Supabase hooks for settings
-  const { compounds, addCompound: addCompoundToSupabase, removeCompound: removeCompoundFromSupabase } = useCompounds();
-  const { templates: foodTemplates, addTemplate: addTemplateToSupabase, removeTemplate: removeTemplateFromSupabase } = useFoodTemplates();
-  const { sessionTypes: nirvanaSessionTypes, addSessionType: addSessionTypeToSupabase, removeSessionType: removeSessionTypeFromSupabase } = useNirvanaSessionTypes();
-  const { macroTargets: supabaseMacroTargets, updateMacroTargets: updateSupabaseMacroTargets } = useMacroTargets();
-  const { trackerSettings: supabaseTrackerSettings, updateTrackerSettings: updateSupabaseTrackerSettings } = useTrackerSettings();
+  const { compounds } = useCompounds();
+  const addCompoundMutation = useAddCompound();
+  const removeCompoundMutation = useRemoveCompound();
+
+  const { templates: foodTemplates } = useFoodTemplates();
+  const addTemplateMutation = useAddFoodTemplate();
+  const removeTemplateMutation = useRemoveFoodTemplate();
+
+  const { sessionTypes: nirvanaSessionTypes } = useNirvanaSessionTypes();
+  const addSessionTypeMutation = useAddNirvanaSessionType();
+  const removeSessionTypeMutation = useRemoveNirvanaSessionType();
+
+  const { macroTargets: supabaseMacroTargets } = useMacroTargets();
+  const updateMacroTargetsMutation = useUpdateMacroTargets();
+
+  const { trackerSettings: supabaseTrackerSettings } = useTrackerSettings();
+  const updateTrackerSettingsMutation = useUpdateTrackerSettings();
   const { images: winnersBibleImages, uploadImage, deleteImage, loading: winnersBibleLoading } = useWinnersBibleImages();
 
   const [newCompound, setNewCompound] = useState('');
@@ -95,6 +141,44 @@ function SettingsPageContent() {
 
   // Winners Bible state
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Smooth scroll to section
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActiveSection(sectionId);
+    }
+  };
+
+  // Intersection Observer for scroll spy
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: '-20% 0px -70% 0px',
+      threshold: 0
+    };
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+
+    // Observe all section elements
+    settingsSections.forEach((section) => {
+      const element = document.getElementById(section.id);
+      if (element) {
+        observer.observe(element);
+      }
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   // Sync local state when profile loads from Supabase
   useEffect(() => {
@@ -176,15 +260,17 @@ function SettingsPageContent() {
     }
   };
 
-  const addCompound = async () => {
+  const addCompound = () => {
     if (newCompound.trim() && !compounds.some(c => c.name === newCompound.trim())) {
-      try {
-        await addCompoundToSupabase(newCompound.trim());
-        setNewCompound('');
-      } catch (error) {
-        console.error('Error adding compound:', error);
-        alert('Failed to add compound. Please try again.');
-      }
+      addCompoundMutation.mutate(newCompound.trim(), {
+        onSuccess: () => {
+          setNewCompound('');
+        },
+        onError: (error) => {
+          console.error('Error adding compound:', error);
+          alert('Failed to add compound. Please try again.');
+        },
+      });
     }
   };
 
@@ -193,49 +279,56 @@ function SettingsPageContent() {
     confirmDeleteCompound(compoundId);
   };
 
-  const confirmDeleteCompound = async (compoundId: string) => {
-    try {
-      await removeCompoundFromSupabase(compoundId);
-      setShowDeleteWarning(null);
-    } catch (error) {
-      console.error('Error removing compound:', error);
-      alert('Failed to remove compound. Please try again.');
-    }
+  const confirmDeleteCompound = (compoundId: string) => {
+    removeCompoundMutation.mutate(compoundId, {
+      onSuccess: () => {
+        setShowDeleteWarning(null);
+      },
+      onError: (error) => {
+        console.error('Error removing compound:', error);
+        alert('Failed to remove compound. Please try again.');
+      },
+    });
   };
 
-  const addTemplate = async () => {
+  const addTemplate = () => {
     if (newTemplate.name.trim() && newTemplate.calories.trim()) {
-      try {
-        await addTemplateToSupabase({
+      addTemplateMutation.mutate(
+        {
           name: newTemplate.name.trim(),
           calories: parseInt(newTemplate.calories) || 0,
           carbs: parseInt(newTemplate.carbs) || 0,
           protein: parseInt(newTemplate.protein) || 0,
           fat: parseInt(newTemplate.fat) || 0
-        });
-        setNewTemplate({ name: '', calories: '', carbs: '', protein: '', fat: '' });
-        setShowTemplateForm(false);
-      } catch (error) {
-        console.error('Error adding food template:', error);
-        alert('Failed to add food template. Please try again.');
-      }
+        },
+        {
+          onSuccess: () => {
+            setNewTemplate({ name: '', calories: '', carbs: '', protein: '', fat: '' });
+            setShowTemplateForm(false);
+          },
+          onError: (error) => {
+            console.error('Error adding food template:', error);
+            alert('Failed to add food template. Please try again.');
+          },
+        }
+      );
     }
   };
 
-  const removeTemplate = async (templateId: string) => {
-    try {
-      await removeTemplateFromSupabase(templateId);
-    } catch (error) {
-      console.error('Error removing food template:', error);
-      alert('Failed to remove food template. Please try again.');
-    }
+  const removeTemplate = (templateId: string) => {
+    removeTemplateMutation.mutate(templateId, {
+      onError: (error) => {
+        console.error('Error removing food template:', error);
+        alert('Failed to remove food template. Please try again.');
+      },
+    });
   };
 
   const updateDailyTrackerSetting = async (key: string, value: boolean) => {
     const updated = { ...dailyTrackerSettings, [key]: value };
     setDailyTrackerSettings(updated);
     try {
-      await updateSupabaseTrackerSettings(updated);
+      updateTrackerSettingsMutation.mutate(updated);
     } catch (error) {
       console.error('Error updating tracker setting:', error);
       alert('Failed to save tracker setting. Please try again.');
@@ -253,7 +346,7 @@ function SettingsPageContent() {
     };
     setDailyTrackerSettings(updated);
     try {
-      await updateSupabaseTrackerSettings(updated);
+      updateTrackerSettingsMutation.mutate(updated);
     } catch (error) {
       console.error('Error toggling custom metric:', error);
       alert('Failed to update custom metric. Please try again.');
@@ -268,7 +361,7 @@ function SettingsPageContent() {
 
   const saveMacroTargets = async () => {
     try {
-      await updateSupabaseMacroTargets(localMacroTargets);
+      updateMacroTargetsMutation.mutate(localMacroTargets);
       setMacroTargetsChanged(false);
       alert('Macro targets saved successfully!');
     } catch (error) {
@@ -325,7 +418,7 @@ function SettingsPageContent() {
   const addSessionType = async () => {
     if (newSessionType.trim() && !nirvanaSessionTypes.some(st => st.name === newSessionType.trim())) {
       try {
-        await addSessionTypeToSupabase(newSessionType.trim());
+        addSessionTypeMutation.mutate(newSessionType.trim());
         setNewSessionType('');
       } catch (error) {
         console.error('Error adding session type:', error);
@@ -336,7 +429,7 @@ function SettingsPageContent() {
 
   const removeSessionType = async (sessionTypeId: string) => {
     try {
-      await removeSessionTypeFromSupabase(sessionTypeId);
+      removeSessionTypeMutation.mutate(sessionTypeId);
     } catch (error) {
       console.error('Error removing session type:', error);
       alert('Failed to remove session type. Please try again.');
@@ -406,10 +499,10 @@ function SettingsPageContent() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto">
+    <div className="p-6 md:p-8">
       {/* First-Time User Welcome Banner */}
       {isFirstTime && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-mm-blue/20 to-mm-blue/10 border border-mm-blue/30 rounded-lg">
+        <div className="mb-6 p-4 bg-gradient-to-r from-mm-blue/20 to-mm-blue/10 border border-mm-blue/30 rounded-lg max-w-6xl mx-auto">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-mm-blue/20 flex items-center justify-center">
               <span className="text-mm-blue text-lg">👋</span>
@@ -431,14 +524,43 @@ function SettingsPageContent() {
         </div>
       )}
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-heading mb-2">Settings</h1>
-        <p className="text-mm-gray">Configure your health tracker preferences and data</p>
-      </div>
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-heading mb-2">Settings</h1>
+          <p className="text-mm-gray">Configure your health tracker preferences and data</p>
+        </div>
 
-      <div className="space-y-8">
-        {/* Profile Settings */}
-        <div className="card-mm p-6">
+        {/* Two-column layout: Sidebar + Content */}
+        <div className="flex gap-8">
+          {/* Left Sidebar Navigation - Desktop Only */}
+          <aside className="hidden lg:block w-64 flex-shrink-0">
+            <nav className="sticky top-24 space-y-1">
+              {settingsSections.map((section) => {
+                const Icon = section.icon;
+                const isActive = activeSection === section.id;
+
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => scrollToSection(section.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                      isActive
+                        ? 'bg-mm-blue/20 text-mm-blue'
+                        : 'text-mm-gray hover:bg-mm-dark2/50 hover:text-mm-white'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    <span className="text-sm font-medium">{section.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* Main Content */}
+          <div className="flex-1 space-y-8">
+            {/* Profile Settings */}
+            <div id="profile" className="card-mm p-6 scroll-mt-24">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-mm-blue/20 flex items-center justify-center mr-3">
               <UserIcon className="w-5 h-5 text-mm-blue" />
@@ -530,7 +652,7 @@ function SettingsPageContent() {
         </div>
 
         {/* Timezone Settings */}
-        <div className="card-mm p-6">
+        <div id="timezone" className="card-mm p-6 scroll-mt-24">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center mr-3">
               <CalendarDaysIcon className="w-5 h-5 text-blue-500" />
@@ -587,7 +709,7 @@ function SettingsPageContent() {
         </div>
 
         {/* Macro Targets */}
-        <div className="card-mm p-6">
+        <div id="macro-targets" className="card-mm p-6 scroll-mt-24">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center mr-3">
               <FireIcon className="w-5 h-5 text-orange-500" />
@@ -660,7 +782,7 @@ function SettingsPageContent() {
         </div>
 
         {/* Injection Compounds */}
-        <div className="card-mm p-6">
+        <div id="compounds" className="card-mm p-6 scroll-mt-24">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center mr-3">
               <BeakerIcon className="w-5 h-5 text-green-500" />
@@ -719,7 +841,7 @@ function SettingsPageContent() {
         </div>
 
         {/* Injection Targets */}
-        <div className="card-mm p-6">
+        <div id="injection-targets" className="card-mm p-6 scroll-mt-24">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center mr-3">
               <BeakerIcon className="w-5 h-5 text-teal-500" />
@@ -905,7 +1027,7 @@ function SettingsPageContent() {
         </div>
 
         {/* Nirvana Session Types */}
-        <div className="card-mm p-6">
+        <div id="nirvana" className="card-mm p-6 scroll-mt-24">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center mr-3">
               <SparklesIcon className="w-5 h-5 text-purple-500" />
@@ -957,7 +1079,7 @@ function SettingsPageContent() {
         </div>
 
         {/* Winners Bible */}
-        <div className="card-mm p-6">
+        <div id="winners-bible" className="card-mm p-6 scroll-mt-24">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center mr-3">
               <PhotoIcon className="w-5 h-5 text-yellow-500" />
@@ -1076,7 +1198,7 @@ function SettingsPageContent() {
         </div>
 
         {/* Food Templates */}
-        <div className="card-mm p-6">
+        <div id="food-templates" className="card-mm p-6 scroll-mt-24">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center mr-3">
               <FireIcon className="w-5 h-5 text-orange-500" />
@@ -1204,7 +1326,7 @@ function SettingsPageContent() {
         </div>
 
         {/* Daily Tracker Settings */}
-        <div className="card-mm p-6">
+        <div id="tracker-settings" className="card-mm p-6 scroll-mt-24">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center mr-3">
               <CalendarDaysIcon className="w-5 h-5 text-purple-500" />
@@ -1311,7 +1433,7 @@ function SettingsPageContent() {
         </div>
 
         {/* Data Management */}
-        <div className="card-mm p-6">
+        <div id="data" className="card-mm p-6 scroll-mt-24">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center mr-3">
               <DocumentArrowDownIcon className="w-5 h-5 text-orange-500" />
@@ -1368,7 +1490,7 @@ function SettingsPageContent() {
         </div>
 
         {/* About */}
-        <div className="card-mm p-6">
+        <div id="about" className="card-mm p-6 scroll-mt-24">
           <div className="flex items-center mb-6">
             <div className="gradient-icon gradient-activities w-10 h-10 mr-3">
               <HeartIcon className="w-5 h-5 text-black" />
@@ -1392,6 +1514,32 @@ function SettingsPageContent() {
               <span className="text-mm-gray">Storage</span>
               <span>Local Browser Storage</span>
             </div>
+          </div>
+        </div>
+
+        {/* Account / Logout Section */}
+        <div id="account" className="card-mm p-6 scroll-mt-24">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+              <ArrowRightOnRectangleIcon className="w-6 h-6 text-red-500" />
+            </div>
+            <div>
+              <h2 className="text-xl font-heading">Account</h2>
+              <p className="text-sm text-mm-gray">Sign out of your account</p>
+            </div>
+          </div>
+
+          <button
+            onClick={async () => {
+              await signOut();
+              router.push('/');
+            }}
+            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+          >
+            <ArrowRightOnRectangleIcon className="w-5 h-5" />
+            Sign Out
+          </button>
+        </div>
           </div>
         </div>
       </div>
@@ -1463,30 +1611,6 @@ function SettingsPageContent() {
           </div>
         </div>
       )}
-
-      {/* Logout Section */}
-      <div className="card-mm p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
-            <ArrowRightOnRectangleIcon className="w-6 h-6 text-red-500" />
-          </div>
-          <div>
-            <h2 className="text-xl font-heading">Account</h2>
-            <p className="text-sm text-mm-gray">Sign out of your account</p>
-          </div>
-        </div>
-
-        <button
-          onClick={async () => {
-            await signOut();
-            router.push('/');
-          }}
-          className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
-        >
-          <ArrowRightOnRectangleIcon className="w-5 h-5" />
-          Sign Out
-        </button>
-      </div>
     </div>
   );
 }

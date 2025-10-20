@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+
+// Force dynamic rendering to avoid hydration issues with date-based queries
+export const dynamic = 'force-dynamic';
 import { profileStorage, dailyEntryStorage, calculations, nirvanaSessionStorage, bodyPartMappingStorage, sessionCorrelationStorage } from '@/lib/storage';
-import { UserProfile, NirvanaEntry, BodyPartUsage, CorrelationAnalysis } from '@/types';
+import { NirvanaEntry, BodyPartUsage, CorrelationAnalysis } from '@/types';
 import { useMacroTargets } from '@/lib/hooks/useSettings';
 import { useDailyRange } from '@/lib/hooks/useDaily';
 import { formatDate } from '@/lib/dateUtils';
@@ -63,8 +66,6 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsPage() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [calorieBalancePeriod, setCalorieBalancePeriod] = useState<7 | 30 | 90>(30);
   const [weightTimePeriod, setWeightTimePeriod] = useState<7 | 30 | 60 | 90>(90);
   const [weightScaleMin, setWeightScaleMin] = useState<number>(75);
@@ -73,7 +74,7 @@ export default function AnalyticsPage() {
   const [showMovingAverage, setShowMovingAverage] = useState<boolean>(false);
 
   // Load macro targets from Supabase
-  const { macroTargets } = useMacroTargets();
+  const { macroTargets, loading: macroTargetsLoading } = useMacroTargets();
 
   // Calculate date range for weight data from Supabase
   // Use useMemo to ensure proper reactivity when weightTimePeriod changes
@@ -91,17 +92,9 @@ export default function AnalyticsPage() {
     };
   }, [weightTimePeriod]);
 
-  const { entries: supabaseEntries } = useDailyRange(startDateStr, endDateStr);
+  const { entries: supabaseEntries, loading: supabaseEntriesLoading } = useDailyRange(startDateStr, endDateStr);
 
-  useEffect(() => {
-    const existingProfile = profileStorage.get();
-    setProfile(existingProfile);
-
-    loadAnalyticsData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calorieBalancePeriod, weightTimePeriod, supabaseEntries]);
-
-  const loadAnalyticsData = () => {
+  const analyticsData = useMemo<AnalyticsData>(() => {
     const data: AnalyticsData = {
       weightData: [],
       calorieBalanceData: [],
@@ -128,7 +121,8 @@ export default function AnalyticsPage() {
     };
 
     const currentDate = new Date();
-    const bmr = profile?.bmr || 2000;
+    const storedProfile = profileStorage.get();
+    const bmr = storedProfile?.bmr || 2000;
     
     // Get targets for calculations
     const targets = {
@@ -430,10 +424,21 @@ export default function AnalyticsPage() {
     // Session Correlation Analysis (last 60 days)
     data.correlationAnalysis = sessionCorrelationStorage.analyzeCorrelations(60);
 
-    setAnalyticsData(data);
-  };
+    return data;
+  }, [
+    macroTargets.calories,
+    macroTargets.protein,
+    macroTargets.fat,
+    calorieBalancePeriod,
+    supabaseEntries
+  ]);
 
-  if (!analyticsData) {
+  const isLoading =
+    (macroTargetsLoading || supabaseEntriesLoading) &&
+    analyticsData.weightData.length === 0 &&
+    analyticsData.calorieBalanceData.length === 0;
+
+  if (isLoading) {
     return (
       <div className="p-6 md:p-8 max-w-7xl mx-auto">
         <div className="text-center py-12">
