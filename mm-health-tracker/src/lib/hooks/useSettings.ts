@@ -38,7 +38,7 @@ export function useCompounds() {
       const settingsService = await getSettingsService(user.id);
       return settingsService.getCompounds();
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && typeof window !== 'undefined', // Only run on client
     staleTime: 1000 * 60 * 10, // 10 minutes - compounds don't change often
   });
 
@@ -139,7 +139,7 @@ export function useFoodTemplates() {
       const settingsService = await getSettingsService(user.id);
       return settingsService.getFoodTemplates();
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && typeof window !== 'undefined', // Only run on client
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
@@ -281,7 +281,7 @@ export function useNirvanaSessionTypes() {
 
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && typeof window !== 'undefined', // Only run on client
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
@@ -457,7 +457,7 @@ export function useTrackerSettings() {
       const settingsService = await getSettingsService(user.id);
       return settingsService.getTrackerSettings();
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && typeof window !== 'undefined', // Only run on client
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 

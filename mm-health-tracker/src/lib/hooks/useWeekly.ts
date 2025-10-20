@@ -57,7 +57,7 @@ export function useWeekly(weekStartDate: string) {
       const weeklyService = await getWeeklyService(user.id);
       return weeklyService.getByWeekStart(weekStartDate);
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && typeof window !== 'undefined', // Only run on client
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 

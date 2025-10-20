@@ -39,7 +39,7 @@ export function useInjections(startDate: string, endDate: string) {
       const dailyService = await getDailyService(user.id);
       return dailyService.getInjectionEntries(startDate, endDate);
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && typeof window !== 'undefined', // Only run on client
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 

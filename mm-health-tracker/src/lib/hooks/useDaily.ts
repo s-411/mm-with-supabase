@@ -53,7 +53,7 @@ export function useDaily(date: string) {
 
       return { entry, calories, exercises, mits };
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && typeof window !== 'undefined', // Only run on client
     staleTime: 1000 * 60 * 2, // 2 minutes - daily data changes frequently
   });
 
@@ -549,7 +549,7 @@ export function useDailyRange(startDate: string, endDate: string) {
 
       return { entries, calories, exercises };
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && typeof window !== 'undefined', // Only run on client
     staleTime: 1000 * 60 * 5, // 5 minutes - range data doesn't change as frequently
   });
 
