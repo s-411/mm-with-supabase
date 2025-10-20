@@ -6,7 +6,7 @@ import { LayoutWrapper } from '@/components/LayoutWrapper';
 import { ErrorBoundary, DevelopmentErrorDisplay } from '@/components/ErrorBoundary';
 
 export const metadata: Metadata = {
-  title: "MM Health Tracker",
+  title: "Measured Managed",
   description: "Comprehensive health tracking application with calorie, exercise, and injection management",
   icons: {
     icon: '/favicon.png',

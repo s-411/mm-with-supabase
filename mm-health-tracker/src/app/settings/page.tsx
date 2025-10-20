@@ -24,6 +24,7 @@ import {
 import type { Database } from '@/lib/supabase/database.types';
 import { profileStorage, dataExport, compoundStorage, foodTemplateStorage, FoodTemplate, injectionTargetStorage, nirvanaSessionTypesStorage, timezoneStorage } from '@/lib/storage';
 import { useWinnersBibleImages } from '@/lib/hooks/useWinnersBible';
+import { useExport } from '@/lib/hooks/useExport';
 import { UserProfile, DailyTrackerSettings, InjectionTarget } from '@/types';
 import {
   UserIcon,
@@ -97,9 +98,23 @@ function SettingsPageContent() {
   const updateTrackerSettingsMutation = useUpdateTrackerSettings();
   const { images: winnersBibleImages, uploadImage, deleteImage, loading: winnersBibleLoading } = useWinnersBibleImages();
 
+  // Export/Import hooks
+  const {
+    exportData: exportDataFn,
+    isExporting,
+    exportCSV: exportCSVFn,
+    isExportingCSV,
+    importData: importDataFn,
+    isImporting,
+    importStats,
+    clearData: clearDataFn,
+    isClearing
+  } = useExport();
+
   const [newCompound, setNewCompound] = useState('');
   const [showDeleteWarning, setShowDeleteWarning] = useState<string | null>(null);
   const [showDataClearWarning, setShowDataClearWarning] = useState(false);
+  const [importFileInput, setImportFileInput] = useState<HTMLInputElement | null>(null);
 
   // Local state for macro targets form
   const [localMacroTargets, setLocalMacroTargets] = useState({ calories: '', carbs: '', protein: '', fat: '' });
@@ -437,17 +452,91 @@ function SettingsPageContent() {
   };
 
   const exportData = () => {
-    // TODO: Implement Supabase data export
-    // This would require fetching all user data from Supabase and formatting it
-    alert('Data Export is temporarily disabled during the Supabase migration. This feature will be re-enabled soon with enhanced cloud backup capabilities.');
+    try {
+      exportDataFn();
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export data. Please try again.');
+    }
   };
 
-  const clearAllData = () => {
-    // TODO: Implement Supabase data deletion
-    // This would require creating a comprehensive API endpoint to delete all user data
-    // For now, we'll show an alert
-    alert('Clear All Data is temporarily disabled during the Supabase migration. Please contact support if you need to delete your data.');
-    setShowDataClearWarning(false);
+  const handleImportClick = () => {
+    // Trigger file input click
+    if (importFileInput) {
+      importFileInput.click();
+    }
+  };
+
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      importDataFn(file, {
+        onSuccess: (stats) => {
+          // Show success message with stats
+          const totalImported = Object.values(stats).reduce((sum, count) => sum + count, 0);
+          alert(`Successfully imported ${totalImported} records!\n\n` +
+            `Daily Entries: ${stats.dailyEntries}\n` +
+            `Calorie Entries: ${stats.calorieEntries}\n` +
+            `Exercise Entries: ${stats.exerciseEntries}\n` +
+            `Injection Entries: ${stats.injectionEntries}\n` +
+            `MITs: ${stats.mits}\n` +
+            `Weekly Entries: ${stats.weeklyEntries}\n` +
+            `Nirvana Entries: ${stats.nirvanaEntries}\n` +
+            `Nirvana Sessions: ${stats.nirvanaSessions}\n` +
+            `Compounds: ${stats.compounds}\n` +
+            `Food Templates: ${stats.foodTemplates}\n` +
+            `Session Types: ${stats.nirvanaSessionTypes}`
+          );
+        },
+        onError: (error) => {
+          console.error('Import error:', error);
+          alert(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      });
+    } finally {
+      // Clear the input
+      event.target.value = '';
+    }
+  };
+
+  const clearAllData = async () => {
+    const confirmed = window.confirm(
+      'Are you ABSOLUTELY sure you want to delete ALL your data?\n\n' +
+      'This will permanently delete:\n' +
+      '• All daily entries and tracking data\n' +
+      '• All calorie and exercise entries\n' +
+      '• All injections and weekly reviews\n' +
+      '• All nirvana sessions and goals\n' +
+      '• All settings and templates\n\n' +
+      'This action CANNOT be undone!\n\n' +
+      'Type "DELETE" in the next prompt to confirm.'
+    );
+
+    if (!confirmed) {
+      setShowDataClearWarning(false);
+      return;
+    }
+
+    const confirmText = window.prompt('Type DELETE to confirm:');
+    if (confirmText !== 'DELETE') {
+      alert('Deletion cancelled - confirmation text did not match.');
+      setShowDataClearWarning(false);
+      return;
+    }
+
+    try {
+      await clearDataFn();
+      alert('All data has been successfully deleted.');
+      // Reload the page to reflect changes
+      window.location.reload();
+    } catch (error) {
+      console.error('Clear data error:', error);
+      alert(`Failed to clear data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setShowDataClearWarning(false);
+    }
   };
 
   // Winners Bible functions
@@ -1452,10 +1541,11 @@ function SettingsPageContent() {
               </div>
               <button
                 onClick={exportData}
-                className="btn-mm py-2 px-4"
+                disabled={isExporting}
+                className="btn-mm py-2 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
-                Export
+                {isExporting ? 'Exporting...' : 'Export'}
               </button>
             </div>
 
@@ -1464,13 +1554,23 @@ function SettingsPageContent() {
                 <p className="font-medium">Import Data</p>
                 <p className="text-sm text-mm-gray">Restore data from a JSON backup file</p>
               </div>
-              <button
-                onClick={() => alert('Data Import is temporarily disabled during the Supabase migration. This feature will be re-enabled soon with enhanced cloud restore capabilities.')}
-                className="btn-mm py-2 px-4 cursor-pointer"
-              >
-                <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
-                Import
-              </button>
+              <div>
+                <input
+                  type="file"
+                  ref={setImportFileInput}
+                  accept=".json"
+                  onChange={handleImportFile}
+                  className="hidden"
+                />
+                <button
+                  onClick={handleImportClick}
+                  disabled={isImporting}
+                  className="btn-mm py-2 px-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
+                  {isImporting ? 'Importing...' : 'Import'}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
@@ -1480,10 +1580,11 @@ function SettingsPageContent() {
               </div>
               <button
                 onClick={() => setShowDataClearWarning(true)}
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+                disabled={isClearing}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <TrashIcon className="w-4 h-4 mr-2" />
-                Clear Data
+                {isClearing ? 'Clearing...' : 'Clear Data'}
               </button>
             </div>
           </div>
