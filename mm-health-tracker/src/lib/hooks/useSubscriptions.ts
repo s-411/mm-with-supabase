@@ -13,12 +13,12 @@ type SubscriptionCategory = Database['public']['Tables']['subscription_categorie
  * Hook to fetch all subscriptions for the current user
  */
 export function useSubscriptions() {
-  const { user } = useProfile();
+  const { profile } = useProfile();
 
   const query = useQuery({
     queryKey: queryKeys.subscriptions.all,
-    queryFn: () => SubscriptionService.getSubscriptions(user?.id || ''),
-    enabled: !!user?.id && typeof window !== 'undefined',
+    queryFn: () => SubscriptionService.getSubscriptions(profile?.id || ''),
+    enabled: !!profile?.id && typeof window !== 'undefined',
   });
 
   const monthlyTotal = SubscriptionService.calculateMonthlyTotal(query.data || []);
@@ -38,15 +38,15 @@ export function useSubscriptions() {
  * Hook to fetch subscriptions by category
  */
 export function useSubscriptionsByCategory(categoryId: string | null) {
-  const { user } = useProfile();
+  const { profile } = useProfile();
 
   return useQuery({
     queryKey: queryKeys.subscriptions.byCategory(categoryId || ''),
     queryFn: () => {
-      if (!categoryId || !user?.id) return [];
-      return SubscriptionService.getSubscriptionsByCategory(user.id, categoryId);
+      if (!categoryId || !profile?.id) return [];
+      return SubscriptionService.getSubscriptionsByCategory(profile.id, categoryId);
     },
-    enabled: !!user?.id && !!categoryId && typeof window !== 'undefined',
+    enabled: !!profile?.id && !!categoryId && typeof window !== 'undefined',
   });
 }
 
@@ -55,14 +55,14 @@ export function useSubscriptionsByCategory(categoryId: string | null) {
  */
 export function useAddSubscription() {
   const queryClient = useQueryClient();
-  const { user } = useProfile();
+  const { profile } = useProfile();
 
   return useMutation({
     mutationFn: async (subscription: Omit<SubscriptionInsert, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!profile?.id) throw new Error('User not authenticated');
       return SubscriptionService.addSubscription({
         ...subscription,
-        user_id: user.id,
+        user_id: profile.id,
       });
     },
     onSuccess: () => {
@@ -164,12 +164,12 @@ export function useDeleteSubscription() {
  * Hook to fetch all categories for the current user
  */
 export function useCategories() {
-  const { user } = useProfile();
+  const { profile } = useProfile();
 
   return useQuery({
     queryKey: queryKeys.subscriptions.categories.all,
-    queryFn: () => SubscriptionService.getCategories(user?.id || ''),
-    enabled: !!user?.id && typeof window !== 'undefined',
+    queryFn: () => SubscriptionService.getCategories(profile?.id || ''),
+    enabled: !!profile?.id && typeof window !== 'undefined',
   });
 }
 
@@ -178,13 +178,13 @@ export function useCategories() {
  */
 export function useAddCategory() {
   const queryClient = useQueryClient();
-  const { user } = useProfile();
+  const { profile } = useProfile();
 
   return useMutation({
     mutationFn: async ({ name, color }: { name: string; color?: string }) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!profile?.id) throw new Error('User not authenticated');
       return SubscriptionService.addCategory({
-        user_id: user.id,
+        user_id: profile.id,
         name,
         color: color || '#00A1FE',
       });
@@ -217,14 +217,14 @@ export function useUpdateCategory() {
  */
 export function useDeleteCategory() {
   const queryClient = useQueryClient();
-  const { user } = useProfile();
+  const { profile } = useProfile();
 
   return useMutation({
     mutationFn: async (categoryId: string) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!profile?.id) throw new Error('User not authenticated');
 
       // First, remove this category from all subscriptions
-      const subscriptions = await SubscriptionService.getSubscriptions(user.id);
+      const subscriptions = await SubscriptionService.getSubscriptions(profile.id);
       const updates = subscriptions
         .filter(sub => sub.category_ids?.includes(categoryId))
         .map(sub => ({

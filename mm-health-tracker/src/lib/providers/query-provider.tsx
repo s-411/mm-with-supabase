@@ -49,10 +49,6 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      {/* DevTools only render in development and on client-side */}
-      {typeof window !== 'undefined' && process.env.NODE_ENV === 'development' && (
-        <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
-      )}
     </QueryClientProvider>
   );
 }
