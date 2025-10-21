@@ -13,7 +13,8 @@ import {
   SparklesIcon,
   Bars3Icon,
   PhotoIcon,
-  UserIcon
+  UserIcon,
+  CreditCardIcon
 } from '@heroicons/react/24/outline';
 import {
   CalendarDaysIcon as CalendarDaysIconSolid,
@@ -25,7 +26,8 @@ import {
   CalculatorIcon as CalculatorIconSolid,
   SparklesIcon as SparklesIconSolid,
   PhotoIcon as PhotoIconSolid,
-  UserIcon as UserIconSolid
+  UserIcon as UserIconSolid,
+  CreditCardIcon as CreditCardIconSolid
 } from '@heroicons/react/24/solid';
 
 interface NavItem {
@@ -71,6 +73,12 @@ const navigation: NavItem[] = [
     label: 'Analytics',
     icon: ChartBarIcon,
     iconSolid: ChartBarIconSolid
+  },
+  {
+    href: '/subscriptions',
+    label: 'Subscriptions',
+    icon: CreditCardIcon,
+    iconSolid: CreditCardIconSolid
   },
   {
     href: '/calculator',

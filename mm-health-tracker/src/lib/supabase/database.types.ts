@@ -702,10 +702,95 @@ export type Database = {
           },
         ]
       }
+      subscription_categories: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_categories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          active: boolean | null
+          billing_date: string
+          billing_frequency: string | null
+          category_ids: string[] | null
+          created_at: string | null
+          id: string
+          name: string
+          notes: string | null
+          price: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          billing_date: string
+          billing_frequency?: string | null
+          category_ids?: string[] | null
+          created_at?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          price: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          billing_date?: string
+          billing_frequency?: string | null
+          category_ids?: string[] | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          price?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
+          auth_user_id: string
           bmr: number
-          clerk_user_id: string
           created_at: string | null
           gender: string | null
           height: number | null
@@ -717,8 +802,8 @@ export type Database = {
           weight: number | null
         }
         Insert: {
+          auth_user_id: string
           bmr?: number
-          clerk_user_id: string
           created_at?: string | null
           gender?: string | null
           height?: number | null
@@ -730,8 +815,8 @@ export type Database = {
           weight?: number | null
         }
         Update: {
+          auth_user_id?: string
           bmr?: number
-          clerk_user_id?: string
           created_at?: string | null
           gender?: string | null
           height?: number | null
@@ -793,21 +878,33 @@ export type Database = {
           created_at: string | null
           display_order: number
           id: string
+          mime_type: string
+          name: string
+          size_bytes: number
           storage_path: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
           display_order?: number
           id?: string
+          mime_type: string
+          name: string
+          size_bytes: number
           storage_path: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
           display_order?: number
           id?: string
+          mime_type?: string
+          name?: string
+          size_bytes?: number
           storage_path?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -825,15 +922,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      clerk_user_id: {
+      current_user_profile_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
       seed_default_compounds: {
+        Args: Record<PropertyKey, never> | { p_user_id: string }
+        Returns: undefined
+      }
+      seed_default_nirvana_session_types: {
         Args: { p_user_id: string }
         Returns: undefined
       }
       seed_default_session_types: {
+        Args: Record<PropertyKey, never> | { p_user_id: string }
+        Returns: undefined
+      }
+      seed_nirvana_defaults_for_user: {
         Args: { p_user_id: string }
         Returns: undefined
       }

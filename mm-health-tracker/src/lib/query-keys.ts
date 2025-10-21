@@ -90,6 +90,17 @@ export const queryKeys = {
     sessionTypes: () => ['settings', 'sessionTypes'] as const,
     trackerSettings: () => ['settings', 'trackerSettings'] as const,
   },
+
+  /**
+   * Subscriptions and categories
+   */
+  subscriptions: {
+    all: ['subscriptions'] as const,
+    byCategory: (categoryId: string) => ['subscriptions', 'category', categoryId] as const,
+    categories: {
+      all: ['subscriptions', 'categories'] as const,
+    },
+  },
 } as const;
 
 /**
